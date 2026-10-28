@@ -1,0 +1,25 @@
+{
+  "schema": "praxis.autonomous-execution-policy/1",
+  "description": "Disposable integration-test policy for the Praxis unattended-execution readiness proof. It governs only the scratch branch praxis-autonomy-e2e/base; main is untouched.",
+  "policyVersion": 1,
+  "execution": { "mode": "unattended" },
+  "scope": {
+    "repositories": [ "kemiller2002/indy-init-rehearsal-007" ],
+    "targetBranches": [ "praxis-autonomy-e2e/base" ],
+    "allowedOperations": [ "create_branch", "commit", "create_pull_request", "run_verification", "request_automated_review", "merge_eligible_pull_request" ]
+  },
+  "pullRequests": { "mergeStrategy": "squash" },
+  "mergeRequirements": {
+    "requiredChecks": [ "build-and-test" ],
+    "checkProducer": "github-actions",
+    "independentReviewCheck": "independent-review",
+    "maxCriticalDefects": 0
+  },
+  "protectedPaths": [
+    { "pattern": "requirements/**", "class": "frozen_requirements" },
+    { "pattern": "acceptance/**", "class": "acceptance_criteria" },
+    { "pattern": "infra/permissions/**", "class": "permission_expansion" }
+  ],
+  "failureHandling": { "transientRetryLimit": 3, "retryBaseDelaySeconds": 2, "checksTimeoutMinutes": 30 },
+  "authorization": { "maxHours": 24 }
+}
