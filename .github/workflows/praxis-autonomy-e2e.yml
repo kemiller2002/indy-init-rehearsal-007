@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  PRAXIS_COMMIT: "75f259113ad880e8e016fcd50009845d9da48f2d"
+  PRAXIS_COMMIT: "c768861994a3c1525e937a6af73bacc1f31337e7"
 
 jobs:
   build-and-test:
