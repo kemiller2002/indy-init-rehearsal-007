@@ -479,7 +479,12 @@ let private createInvestigation (env: Env) (m: Model) =
         match decide env.Context id None cmd with
         | Ok(envelope, inv) ->
             let s = { emptySession id h with Load = Ready; Current = Some inv; Unsaved = [ cmd, envelope ]; Save = (if m.Online then Unsaved else Offline) }
-            { m with Sessions = m.Sessions.Add(id, s); Order = m.Order @ [ id ]; Form = m.Form.Remove("new.title").Remove("new.problem"); Notice = "" }, id
+            { m with
+                Sessions = m.Sessions.Add(id, s)
+                Order = m.Order @ [ id ]
+                Form = m.Form.Remove("new.title").Remove("new.problem")
+                Notice = ""
+                Polite = sprintf "%s: %s" inv.Title (SaveState.name s.Save) }, id
         | Error e -> { m with Notice = "Not recorded: " + e }, ""
     | Some _ -> { m with Notice = "Give the investigation a title and describe the problem." }, ""
     | None -> { m with Notice = "Connect to a repository first." }, ""
