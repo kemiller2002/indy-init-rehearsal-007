@@ -1,0 +1,50 @@
+{
+  "schema": "indy-init.rehearsal-kickoff/1",
+  "rehearsal": "007",
+  "t0": "2026-10-29T22:49:55Z",
+  "deadline": "2026-10-30T05:49:55Z",
+  "timeLimitMinutes": 420,
+  "authorization": {
+    "by": "kemiller2002 (owner)",
+    "words": "Merge and authorize kickoff",
+    "channel": "Claude Code session session_01G1iECdaTWsbm5P9ZJ1nuMG",
+    "actionsTakenOnAuthorization": [
+      "Indy-init #46 merged as f16b1b87bf88b8071035875accc33241a24fc500",
+      "Indy-init #47 merged as 5fcbffa029bfe225077833683a4695e9d08aec5a (DEC-R7-008..012 in effect)",
+      "indy-init-rehearsal-007 #21 merged as 5e3320513db603ef3df1e5f1dca46516cc89ad8a (DEC-R7-012 starting state)"
+    ]
+  },
+  "kickoffCommit": "5e3320513db603ef3df1e5f1dca46516cc89ad8a",
+  "kickoffTree": "460f9e43038e2193dd73c8a71fec0123e0de050a",
+  "startingStateCheck": "PASS: kickoff tree equals tree of df336cd122e385ca26e5ad5860c01eee93f88f26 (DEC-R7-012)",
+  "requirements": {
+    "repository": "kemiller2002/Indy-init",
+    "commit": "5fcbffa029bfe225077833683a4695e9d08aec5a",
+    "baselineId": "BL-CAUSA-INDY-INIT-8445ca11986f",
+    "baselineFileSha256": "579cd8f5953c4bd218332426e86cc87edb029ebc51968c8ad417ff50b0898dab",
+    "regeneratedAtKickoff": "BL-CAUSA-INDY-INIT-5fcbffa029bf: 517 requirements, 0 changed, source digests identical",
+    "ownerDecisions": "DEC-R7-001..012",
+    "verificationPlan": {
+      "compiledR7Package": "ABSENT (v4 not cut, K3)",
+      "authorityUsed": "Acceptance obligations stated in the R7 baseline requirement text (including PERSIST-040..055 / PAT-01..15) plus requirements-compiled/v3/verification-plan.json for obligations it carries",
+      "v3VerificationPlanSha256": "0292f208d566907e5c9112d8a5f93747ff6a76aab08191145d95542963e4e94a"
+    }
+  },
+  "dependencies": {
+    "dotnetSdk": "10.0.402",
+    "workloads": ["wasm-tools"],
+    "fake-cli": "6.2.0",
+    "node": "22",
+    "@echelon-foundry/limen": "0.9.1",
+    "@echelon-foundry/design-system": "0.12.0",
+    "echelonCurrent": "1.33.0 (DEC-R7-011)",
+    "praxisCiCommit": "023b20894b0c81cea2c7493e79a155b97d14b207"
+  },
+  "kickoffDeviations": [
+    {"id": "KD-001", "what": "No compiled v4 package / R7 verification plan exists at T0", "decision": "Owner authorized kickoff with K3 open. Verification authority is the frozen baseline's acceptance obligations; acceptance coverage is reported against them without claiming plan-readiness READY.", "effect": "Final acceptance cannot report a compiled-plan verdict; independent verdict may be BLOCKED for this reason."},
+    {"id": "KD-002", "what": "23 leftover branches in indy-init-rehearsal-007 not deleted (DEC-R7-012)", "decision": "Agent branch deletion was denied by the session permission guard; owner action. No effect on main's tree."},
+    {"id": "KD-003", "what": "main has no branch protection / ruleset (UAE-R7-12)", "decision": "Merge gate is advisory: PRs merge after build-and-test and independent-review pass."},
+    {"id": "KD-004", "what": "Indy-init #46/#47 added tools/__pycache__/*.pyc", "decision": "Recorded only; Indy-init is read-only during the run."}
+  ],
+  "agent": "Claude Code (cloud), session session_01G1iECdaTWsbm5P9ZJ1nuMG"
+}

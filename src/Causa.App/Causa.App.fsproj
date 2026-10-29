@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="Limen.fs" />
+    <Compile Include="App.fs" />
+    <Compile Include="View.fs" />
+    <Compile Include="Engine.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Causa.Persistence/Causa.Persistence.fsproj" />
+  </ItemGroup>
+</Project>

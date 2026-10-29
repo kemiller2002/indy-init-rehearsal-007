@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Causa</title>
+  <link rel="stylesheet" href="./forma/all.css">
+  <link rel="stylesheet" href="./causa.css">
+</head>
+<body>
+  <a class="ef-skip-link causa-skip" href="#main">Skip to content</a>
+
+  <!-- Browser boundary channels (main.js): connectivity, timers and the leave guard. -->
+  <input type="hidden" id="causa-net" data-event="net" data-on="causa-net">
+  <input type="hidden" id="causa-timer" data-event="timer" data-on="causa-timer">
+  <div id="causa-guard" hidden data-bind-data-guard="leaveGuard" data-bind-data-timer="timer"></div>
+
+  <div class="causa-visually-hidden" role="status" aria-live="polite" data-text="polite"></div>
+  <div class="causa-visually-hidden" role="alert" aria-live="assertive" data-text="assertive"></div>
+
+  <section id="causa-loading" class="causa-loading" aria-labelledby="loading-title">
+    <div class="causa-loading__mark" aria-hidden="true"></div>
+    <h1 id="loading-title">Causa</h1>
+    <p id="causa-loading-text" role="status">Loading Causa…</p>
+    <div id="causa-loading-failed" hidden>
+      <p>Causa could not start in this browser. Check the connection, then reload.</p>
+      <button type="button" id="causa-reload">Reload</button>
+    </div>
+  </section>
+
+  <div id="causa-app" class="causa-app" hidden>
+    <header class="causa-header">
+      <div class="causa-header__brand"><a href="#/" class="causa-brand">Causa</a></div>
+      <nav class="causa-nav" aria-label="Main">
+        <a href="#/">Investigations</a>
+        <a href="#/help">Help</a>
+        <a href="#/settings">Settings</a>
+      </nav>
+      <div class="causa-header__status">
+        <span class="causa-connection" data-text="connection"></span>
+        <template data-if="connected">
+          <button type="button" class="causa-link-button" data-event="disconnect">Disconnect</button>
+        </template>
+      </div>
+    </header>
+
+    <template data-if="hasMode">
+      <p class="causa-mode" role="note" data-text="mode"></p>
+    </template>
+
+    <template data-if="hasUnsavedSummary">
+      <nav class="causa-unsaved" aria-label="Investigations not saved">
+        <span data-text="unsavedCount"></span>:
+        <ul>
+          <template data-each="unsavedList" data-key="id">
+            <li><a data-bind-href="href"><span data-text="title"></span></a> (<span data-text="state"></span>)</li>
+          </template>
+        </ul>
+      </nav>
+    </template>
+
+    <template data-if="confirmDisconnect">
+      <section class="causa-confirm" role="alertdialog" aria-labelledby="dc-title" aria-describedby="dc-text">
+        <h2 id="dc-title">Disconnect and lose unsaved changes?</h2>
+        <p id="dc-text">Some investigations have changes that exist only in this tab. Disconnecting removes them.</p>
+        <button type="button" data-event="disconnect.confirm">Disconnect and lose changes</button>
+        <button type="button" data-event="disconnect.cancel">Keep working</button>
+      </section>
+    </template>
+
+    <template data-if="hasNotice">
+      <div class="causa-notice" role="status">
+        <p data-text="notice"></p>
+        <button type="button" class="causa-link-button" data-event="notice.dismiss">Dismiss</button>
+      </div>
+    </template>
+
+    <main id="main" class="causa-main" tabindex="-1">
+      <template data-if="routeHome">
+        <div>
+          <template data-if="disconnected">
+            <section class="causa-panel causa-connect" aria-labelledby="connect-title">
+              <h1 id="connect-title">Connect a data repository</h1>
+              <p>Causa reads and writes investigations in a GitHub repository you choose. Nothing is changed when you connect.</p>
+              <p class="causa-statement" id="tab-statement"><strong>Changes you make exist only in this browser tab until you save them to GitHub.</strong> Closing, reloading or losing this tab loses unsaved changes. Causa keeps no copy in the browser.</p>
+              <p class="causa-error" data-text="connectionDetail"></p>
+              <form data-event="connect" class="causa-form">
+                <label for="c-owner">Repository owner</label>
+                <input id="c-owner" autocomplete="off" data-event="draft:connect.owner" data-on="input" data-bind-value="f.owner">
+                <label for="c-repo">Repository name</label>
+                <input id="c-repo" autocomplete="off" data-event="draft:connect.repo" data-on="input" data-bind-value="f.repo">
+                <label for="c-branch">Branch</label>
+                <input id="c-branch" autocomplete="off" data-event="draft:connect.branch" data-on="input" data-bind-value="f.branch">
+                <label for="c-ws">Workspace folder</label>
+                <input id="c-ws" autocomplete="off" placeholder="workspaces/demo/my-run" data-event="draft:connect.workspace" data-on="input" data-bind-value="f.workspace">
+                <label for="c-token">GitHub token</label>
+                <input id="c-token" type="password" autocomplete="off" aria-describedby="token-help" data-event="draft:connect.token" data-on="input" data-bind-value="f.token">
+                <p id="token-help" class="causa-help">Use a fine-grained token limited to this repository. Causa keeps it only in this tab's memory; you will enter it again after a reload.</p>
+                <details>
+                  <summary>Advanced</summary>
+                  <label for="c-api">GitHub API address</label>
+                  <input id="c-api" autocomplete="off" placeholder="https://api.github.com" data-event="draft:connect.api" data-on="input" data-bind-value="f.api">
+                </details>
+                <button type="submit" class="causa-primary">Connect</button>
+              </form>
+            </section>
+          </template>
+
+          <template data-if="connected">
+            <section aria-labelledby="dash-title">
+              <h1 id="dash-title">Investigations</h1>
+              <p class="causa-help" data-text="connectionDetail"></p>
+              <template data-if="noInvestigations">
+                <div class="ef-empty-state causa-panel">
+                  <h2>No investigations here yet</h2>
+                  <p>This workspace is connected and empty. Start an investigation below.</p>
+                </div>
+              </template>
+              <ul class="causa-cards">
+                <template data-each="investigations" data-key="id">
+                  <li class="causa-card">
+                    <h2><a data-bind-href="href"><span data-text="title"></span></a></h2>
+                    <p data-text="problem"></p>
+                    <p class="causa-meta"><span data-text="lifecycle"></span> · <span data-text="status"></span></p>
+                    <span class="ef-status-lozenge" data-bind-data-state="lozenge" data-text="saveState"></span>
+                  </li>
+                </template>
+              </ul>
+              <form data-event="new.create" class="causa-panel causa-form" aria-labelledby="new-title">
+                <h2 id="new-title">Start an investigation</h2>
+                <label for="n-title">Title</label>
+                <input id="n-title" data-event="draft:new.title" data-on="input" data-bind-value="new.title">
+                <label for="n-problem">What problem are you investigating?</label>
+                <textarea id="n-problem" rows="3" data-event="draft:new.problem" data-on="input" data-bind-value="new.problem"></textarea>
+                <button type="submit" class="causa-primary">Start investigation</button>
+              </form>
+            </section>
+          </template>
+        </div>
+      </template>
+
+      <template data-if="routeMissing">
+        <section class="causa-panel" aria-labelledby="missing-title">
+          <h1 id="missing-title">This investigation is not open in this tab</h1>
+          <p>Connect to its repository to load it from GitHub. If you are offline, it is unavailable until the connection returns.</p>
+          <a href="#/">Back to investigations</a>
+        </section>
+      </template>
+
+      <template data-if="routeInvestigation">
+        <article class="causa-investigation" aria-labelledby="inv-title">
+          <header class="causa-inv-header">
+            <p class="causa-crumb"><a href="#/">Investigations</a></p>
+            <h1 id="inv-title" data-text="inv.title"></h1>
+            <p data-text="inv.problem"></p>
+            <p class="causa-meta">Lifecycle: <strong data-text="inv.lifecycle"></strong> · Version <span data-text="inv.version"></span></p>
+
+            <template data-if="save.isPlain">
+              <section class="causa-save" aria-label="Save state">
+                <span class="ef-status-lozenge" data-bind-data-state="save.lozenge" data-text="save.state"></span>
+                <p class="causa-save__text" data-text="save.text"></p>
+                <p class="ef-freshness"><span class="ef-freshness__label">GitHub</span> <time data-bind-datetime="save.freshTime" data-text="save.fresh"></time></p>
+                <div class="causa-actions">
+                  <template data-if="save.canSave"><button type="button" class="causa-primary" data-event="save">Save to GitHub</button></template>
+                  <template data-if="save.isSaved"><button type="button" data-event="refresh">Load latest from GitHub</button></template>
+                </div>
+              </section>
+            </template>
+
+            <template data-if="save.isOperation">
+              <section class="ef-operation-status causa-save" aria-labelledby="op-title">
+                <div class="ef-operation-status__symbol" aria-hidden="true">↻</div>
+                <div>
+                  <span class="ef-status-lozenge" data-bind-data-state="save.lozenge" data-text="save.state"></span>
+                  <h2 id="op-title" class="causa-op-title" data-text="save.state"></h2>
+                  <p data-text="save.text"></p>
+                  <p class="ef-freshness"><span class="ef-freshness__label">GitHub</span> <time data-bind-datetime="save.freshTime" data-text="save.fresh"></time></p>
+                </div>
+                <div class="ef-operation-status__actions">
+                  <template data-if="save.canRetry"><button type="button" data-event="save">Retry</button></template>
+                  <template data-if="save.canCheckAgain"><button type="button" data-event="checkAgain">Check again</button></template>
+                  <template data-if="save.canReconnect"><button type="button" data-event="disconnect">Reconnect</button></template>
+                </div>
+              </section>
+            </template>
+
+            <template data-if="save.isConflict">
+              <article class="ef-conflict-review causa-save" aria-labelledby="conflict-title">
+                <header class="ef-conflict-review__header">
+                  <span class="ef-status-lozenge" data-bind-data-state="save.lozenge" data-text="save.state"></span>
+                  <h2 id="conflict-title">This investigation changed on GitHub</h2>
+                  <p data-text="save.text"></p>
+                </header>
+                <template data-if="conflict.reviewing">
+                  <div class="ef-diff-viewer">
+                    <div class="ef-diff-viewer__grid">
+                      <section class="ef-diff-viewer__side"><h3>In this tab</h3><p data-text="conflict.mine"></p>
+                        <ol><template data-each="mineChanges" data-key="n"><li data-text="summary"></li></template></ol>
+                      </section>
+                      <section class="ef-diff-viewer__side"><h3>On GitHub</h3><p data-text="conflict.theirs"></p></section>
+                    </div>
+                  </div>
+                </template>
+                <template data-if="conflict.confirmDiscard">
+                  <div class="causa-confirm" role="alertdialog" aria-labelledby="discard-title">
+                    <h3 id="discard-title">Discard the changes in this tab?</h3>
+                    <p>The GitHub version will be loaded and this tab's changes will be removed.</p>
+                    <button type="button" data-event="conflict.discard.confirm">Discard my changes</button>
+                    <button type="button" data-event="conflict.discard.cancel">Keep my changes</button>
+                  </div>
+                </template>
+                <footer class="ef-conflict-review__actions">
+                  <button type="button" data-event="conflict.review">Review the differences</button>
+                  <button type="button" data-event="conflict.reapply">Reapply my changes to the GitHub version</button>
+                  <button type="button" data-event="conflict.discard">Discard my changes and load the GitHub version</button>
+                </footer>
+              </article>
+            </template>
+          </header>
+
+          <template data-if="inv.loading">
+            <p class="causa-panel" role="status">Loading this investigation from GitHub…</p>
+          </template>
+          <template data-if="inv.failed">
+            <p class="causa-panel causa-error" role="alert" data-text="inv.loadError"></p>
+          </template>
+
+          <template data-if="hasRefused">
+            <section class="causa-panel" aria-labelledby="refused-title">
+              <h2 id="refused-title">Changes the investigation refused</h2>
+              <p>These changes could not be applied to the GitHub version and were not kept:</p>
+              <ul><template data-each="refused" data-key="n"><li data-text="summary"></li></template></ul>
+            </section>
+          </template>
+
+          <template data-if="inv.ready">
+            <div class="causa-workspace">
+              <div class="causa-columns">
+                <section class="causa-panel" aria-labelledby="hyp-title">
+                  <h2 id="hyp-title">Hypotheses</h2>
+                  <ul class="causa-list">
+                    <template data-each="hypotheses" data-key="id">
+                      <li><button type="button" class="causa-entity" data-event="select" data-bind-aria-pressed="pressed"><span data-text="label"></span> <span class="causa-state" data-text="state"></span></button></li>
+                    </template>
+                  </ul>
+                  <template data-if="inv.editable">
+                    <form data-event="hyp.add" class="causa-form">
+                      <label for="hyp-s">New hypothesis</label>
+                      <textarea id="hyp-s" rows="2" data-event="draft:hyp.statement" data-on="input" data-bind-value="d.hyp.statement"></textarea>
+                      <label for="hyp-m">Mechanism (optional)</label>
+                      <input id="hyp-m" data-event="draft:hyp.mechanism" data-on="input" data-bind-value="d.hyp.mechanism">
+                      <button type="submit">Propose hypothesis</button>
+                    </form>
+                  </template>
+                </section>
+
+                <section class="causa-panel" aria-labelledby="ev-title">
+                  <h2 id="ev-title">Evidence</h2>
+                  <ul class="causa-list">
+                    <template data-each="evidence" data-key="id">
+                      <li><button type="button" class="causa-entity" data-event="select" data-bind-aria-pressed="pressed"><span data-text="label"></span> <span class="causa-meta" data-text="detail"></span> <span class="causa-state" data-text="state"></span></button></li>
+                    </template>
+                  </ul>
+                  <template data-if="inv.editable">
+                    <form data-event="ev.add" class="causa-form">
+                      <label for="ev-c">New evidence</label>
+                      <textarea id="ev-c" rows="2" data-event="draft:ev.content" data-on="input" data-bind-value="d.ev.content"></textarea>
+                      <label for="ev-s">Source</label>
+                      <input id="ev-s" data-event="draft:ev.source" data-on="input" data-bind-value="d.ev.source">
+                      <label for="ev-k">Kind of evidence</label>
+                      <select id="ev-k" data-event="draft:ev.category" data-bind-value="d.ev.category">
+                        <option value="directObservation">Direct observation</option>
+                        <option value="measurement">Measurement</option>
+                        <option value="log">Log</option>
+                        <option value="document">Document</option>
+                        <option value="experimentResult">Experiment result</option>
+                        <option value="testimony">Testimony</option>
+                        <option value="externalReference">External reference</option>
+                      </select>
+                      <button type="submit">Add evidence</button>
+                    </form>
+                    <form data-event="rel.add" class="causa-form">
+                      <h3>Relate evidence to a hypothesis</h3>
+                      <label for="rel-e">Evidence</label>
+                      <select id="rel-e" data-event="draft:rel.evidence" data-bind-value="d.rel.evidence">
+                        <option value="">Choose evidence</option>
+                        <template data-each="evidenceOptions" data-key="id"><option data-bind-value="id" data-text="label"></option></template>
+                      </select>
+                      <label for="rel-h">Hypothesis</label>
+                      <select id="rel-h" data-event="draft:rel.hypothesis" data-bind-value="d.rel.hypothesis">
+                        <option value="">Choose a hypothesis</option>
+                        <template data-each="hypothesisOptions" data-key="id"><option data-bind-value="id" data-text="label"></option></template>
+                      </select>
+                      <label for="rel-k">Relationship</label>
+                      <select id="rel-k" data-event="draft:rel.kind" data-bind-value="d.rel.kind">
+                        <option value="">Choose</option>
+                        <option value="supports">Supports</option>
+                        <option value="contradicts">Contradicts</option>
+                        <option value="discriminates">Discriminates</option>
+                        <option value="insufficient">Insufficient</option>
+                      </select>
+                      <label for="rel-r">Rationale (optional)</label>
+                      <input id="rel-r" data-event="draft:rel.rationale" data-on="input" data-bind-value="d.rel.rationale">
+                      <button type="submit">Relate</button>
+                    </form>
+                  </template>
+                  <ul class="causa-list causa-meta">
+                    <template data-each="relationships" data-key="id"><li><span data-text="detail"></span>: <span data-text="label"></span></li></template>
+                  </ul>
+                </section>
+
+                <section class="causa-panel" aria-labelledby="obs-title">
+                  <h2 id="obs-title">Observations</h2>
+                  <ul class="causa-list">
+                    <template data-each="observations" data-key="id"><li data-text="label"></li></template>
+                  </ul>
+                  <template data-if="inv.editable">
+                    <form data-event="obs.add" class="causa-form">
+                      <label for="obs-t">New observation</label>
+                      <textarea id="obs-t" rows="2" data-event="draft:obs.text" data-on="input" data-bind-value="d.obs.text"></textarea>
+                      <button type="submit">Record observation</button>
+                    </form>
+                  </template>
+                </section>
+
+                <section class="causa-panel" aria-labelledby="unk-title">
+                  <h2 id="unk-title">Unknowns</h2>
+                  <ul class="causa-list">
+                    <template data-each="unknowns" data-key="id">
+                      <li><button type="button" class="causa-entity" data-event="select" data-bind-aria-pressed="pressed"><span data-text="label"></span> <span class="causa-meta" data-text="detail"></span> <span class="causa-state" data-text="state"></span></button></li>
+                    </template>
+                  </ul>
+                  <template data-if="inv.editable">
+                    <form data-event="unk.add" class="causa-form">
+                      <label for="unk-q">New open question</label>
+                      <input id="unk-q" data-event="draft:unk.question" data-on="input" data-bind-value="d.unk.question">
+                      <label for="unk-m">How much does it matter?</label>
+                      <select id="unk-m" data-event="draft:unk.materiality" data-bind-value="d.unk.materiality">
+                        <option value="blocking">Blocking</option>
+                        <option value="material">Material</option>
+                        <option value="nonMaterial">Not material</option>
+                        <option value="informational">Informational</option>
+                      </select>
+                      <button type="submit">Record unknown</button>
+                    </form>
+                  </template>
+                </section>
+
+                <section class="causa-panel" aria-labelledby="cause-title">
+                  <h2 id="cause-title">Causes and conclusions</h2>
+                  <ul class="causa-list">
+                    <template data-each="causes" data-key="id">
+                      <li><button type="button" class="causa-entity" data-event="select" data-bind-aria-pressed="pressed"><span data-text="label"></span> <span class="causa-state" data-text="state"></span></button></li>
+                    </template>
+                  </ul>
+                  <template data-if="inv.editable">
+                    <form data-event="cause.add" class="causa-form">
+                      <label for="cause-o">Proposed cause of the outcome</label>
+                      <input id="cause-o" data-event="draft:cause.outcome" data-on="input" data-bind-value="d.cause.outcome">
+                      <label for="cause-h">Hypothesis it rests on</label>
+                      <select id="cause-h" data-event="draft:cause.hypothesis" data-bind-value="d.cause.hypothesis">
+                        <option value="">Choose a hypothesis</option>
+                        <template data-each="hypothesisOptions" data-key="id"><option data-bind-value="id" data-text="label"></option></template>
+                      </select>
+                      <button type="submit">Propose cause</button>
+                    </form>
+                  </template>
+                  <h3>Conclusions</h3>
+                  <ul class="causa-list">
+                    <template data-each="conclusions" data-key="id"><li><span data-text="label"></span> <span class="causa-meta" data-text="detail"></span></li></template>
+                  </ul>
+                  <template data-if="inv.editable">
+                    <form data-event="con.add" class="causa-form">
+                      <label for="con-s">Conclusion</label>
+                      <textarea id="con-s" rows="2" data-event="draft:con.statement" data-on="input" data-bind-value="d.con.statement"></textarea>
+                      <label for="con-k">Strength</label>
+                      <select id="con-k" data-event="draft:con.strength" data-bind-value="d.con.strength">
+                        <option value="probable">Probable</option>
+                        <option value="established">Established</option>
+                        <option value="tentative">Tentative</option>
+                      </select>
+                      <label for="con-r">What is still uncertain (optional)</label>
+                      <input id="con-r" data-event="draft:con.residual" data-on="input" data-bind-value="d.con.residual">
+                      <button type="submit">Record conclusion</button>
+                    </form>
+                  </template>
+                </section>
+              </div>
+
+              <aside class="causa-panel causa-inspector" aria-labelledby="insp-title">
+                <h2 id="insp-title">Inspector</h2>
+                <template data-if="hasSelection">
+                  <div>
+                    <p class="causa-meta" data-text="sel.kind"></p>
+                    <p class="causa-inspector__label" data-text="sel.label"></p>
+                    <p>State: <strong data-text="sel.state"></strong></p>
+                    <p class="causa-meta" data-text="sel.recorded"></p>
+                    <template data-if="sel.hasTransitions">
+                      <div class="causa-form">
+                        <label for="tr-reason">Reason for the change</label>
+                        <input id="tr-reason" data-event="draft:transition.reason" data-on="input" data-bind-value="d.transition.reason">
+                        <div class="causa-actions">
+                          <template data-each="transitions" data-key="key"><button type="button" data-event="transition" data-text="label"></button></template>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <p class="causa-help">Choose a hypothesis, evidence, unknown or cause to see its details and the changes the investigation allows.</p>
+                <template data-if="inv.editable">
+                  <div class="causa-form">
+                    <h3>Investigation lifecycle</h3>
+                    <label for="life-r">Reason</label>
+                    <input id="life-r" data-event="draft:life.reason" data-on="input" data-bind-value="d.life.reason">
+                    <div class="causa-actions">
+                      <template data-each="lifecycleActions" data-key="key"><button type="button" data-event="life" data-text="label"></button></template>
+                    </div>
+                  </div>
+                </template>
+              </aside>
+
+              <section class="causa-panel causa-timeline" aria-labelledby="tl-title">
+                <h2 id="tl-title">Timeline</h2>
+                <ol class="ef-timeline causa-list">
+                  <template data-each="timeline" data-key="version">
+                    <li>
+                      <span class="causa-meta">v<span data-text="version"></span> · <span data-text="at"></span></span>
+                      <strong data-text="type"></strong> <span data-text="summary"></span>
+                      <template data-if="pending"><span class="causa-pending">only in this tab</span></template>
+                    </li>
+                  </template>
+                </ol>
+              </section>
+            </div>
+          </template>
+        </article>
+      </template>
+
+      <template data-if="routeHelp">
+        <section class="causa-panel causa-prose" aria-labelledby="help-title">
+          <h1 id="help-title">Help</h1>
+          <h2>Where your work is kept</h2>
+          <p id="help-statement">GitHub is the only place Causa keeps investigations. <strong>Changes you make exist only in this browser tab until you save them to GitHub.</strong> If the tab closes, reloads or crashes, unsaved changes are lost. Causa keeps no copy in the browser and cannot recover them.</p>
+          <h2>Save states</h2>
+          <dl>
+            <dt>Saved</dt><dd>GitHub confirmed the last change and this tab has nothing more to send.</dd>
+            <dt>Unsaved</dt><dd>This tab has changes that are not on GitHub yet.</dd>
+            <dt>Saving</dt><dd>Causa is sending the change to GitHub and waiting for confirmation.</dd>
+            <dt>Offline</dt><dd>The connection is lost. Changes stay in this tab until you save after the connection returns.</dd>
+            <dt>Conflict</dt><dd>Someone else changed the same investigation on GitHub. Nothing from this tab was written. Review, reapply or discard your changes.</dd>
+            <dt>Unknown commit outcome</dt><dd>Causa cannot tell whether GitHub received the change, so it checks GitHub before sending again.</dd>
+            <dt>Save failed</dt><dd>GitHub refused the change. The reason is shown, and your changes stay in this tab.</dd>
+          </dl>
+          <h2>Two tabs</h2>
+          <p>Each tab works on its own copy. A change made in one tab appears in another only after it is saved to GitHub and the other tab loads it from GitHub.</p>
+        </section>
+      </template>
+
+      <template data-if="routeSettings">
+        <section class="causa-panel causa-prose" aria-labelledby="settings-title">
+          <h1 id="settings-title">Settings</h1>
+          <p>Connection: <span data-text="connection"></span></p>
+          <p data-text="connectionDetail"></p>
+          <p>Causa stores no investigation content, repository paths or credentials in the browser.</p>
+        </section>
+      </template>
+    </main>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

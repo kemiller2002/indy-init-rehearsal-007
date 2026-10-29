@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Harness.fs" />
+    <Compile Include="DomainTests.fs" />
+    <Compile Include="SaveStateTests.fs" />
+    <Compile Include="PatTests.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Expecto" Version="10.2.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.App/Causa.App.fsproj" />
+    <ProjectReference Include="../Causa.Fake/Causa.Fake.fsproj" />
+  </ItemGroup>
+</Project>

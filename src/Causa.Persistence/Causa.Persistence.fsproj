@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="SaveState.fs" />
+    <Compile Include="GitHub.fs" />
+    <Compile Include="SaveProcess.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Causa.Domain/Causa.Domain.fsproj" />
+  </ItemGroup>
+</Project>
