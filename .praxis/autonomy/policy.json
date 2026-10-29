@@ -1,0 +1,26 @@
+{
+  "schema": "praxis.autonomous-execution-policy/1",
+  "description": "Rehearsal 7 unattended-execution policy (Indy-init UAE-001). Governs main. Run authorizations are signed by the owner-delegated agent authority (owner decision, 2026-10-29); see praxis docs/autonomous-execution/EXECUTION-POLICY.md.",
+  "policyVersion": 1,
+  "execution": { "mode": "unattended" },
+  "scope": {
+    "repositories": [ "kemiller2002/indy-init-rehearsal-007" ],
+    "targetBranches": [ "main" ],
+    "allowedOperations": [ "create_branch", "commit", "create_pull_request", "run_verification", "request_automated_review", "merge_eligible_pull_request" ]
+  },
+  "pullRequests": { "mergeStrategy": "squash" },
+  "mergeRequirements": {
+    "requiredChecks": [ "build-and-test" ],
+    "checkProducer": "github-actions",
+    "independentReviewCheck": "independent-review",
+    "maxCriticalDefects": 0
+  },
+  "protectedPaths": [
+    { "pattern": "requirements/**", "class": "frozen_requirements" },
+    { "pattern": "acceptance/**", "class": "acceptance_criteria" },
+    { "pattern": "verification/**", "class": "verification_policy" },
+    { "pattern": "infra/permissions/**", "class": "permission_expansion" }
+  ],
+  "failureHandling": { "transientRetryLimit": 3, "retryBaseDelaySeconds": 2, "checksTimeoutMinutes": 30 },
+  "authorization": { "maxHours": 24 }
+}

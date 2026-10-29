@@ -1,0 +1,64 @@
+# Rehearsal 7 unattended execution (Indy-init UAE-001, praxis WI-0104). Runs
+# for every pull request into main.
+#
+# build-and-test is the required CI check. independent-review runs Praxis's
+# deterministic independent review in its own job (a fresh runner, the
+# github-actions identity, never the implementing agent's session) against
+# the policy on the base branch, never the candidate's.
+name: praxis-autonomy
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+env:
+  PRAXIS_COMMIT: "023b20894b0c81cea2c7493e79a155b97d14b207"
+
+jobs:
+  build-and-test:
+    name: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: bash tests/verify.sh
+
+  independent-review:
+    name: independent-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          repository: kemiller2002/praxis
+          ref: ${{ env.PRAXIS_COMMIT }}
+          path: praxis
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet build praxis/src/Praxis.Cli/Praxis.Cli.fsproj --configuration Release
+      - name: Independent review
+        working-directory: candidate
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git show "origin/$BASE_REF:.praxis/autonomy/policy.json" > "$RUNNER_TEMP/policy.json"
+          dotnet ../praxis/src/Praxis.Cli/bin/Release/net10.0/praxis.dll --root "$PWD" autonomy review \
+            --base "origin/$BASE_REF" --head "$HEAD_SHA" --policy "$RUNNER_TEMP/policy.json" \
+            --event "$GITHUB_EVENT_PATH" --out "$RUNNER_TEMP/independent-review.json"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-review-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/independent-review.json
