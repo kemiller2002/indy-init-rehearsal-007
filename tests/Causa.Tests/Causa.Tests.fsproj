@@ -8,6 +8,7 @@
     <Compile Include="DomainTests.fs" />
     <Compile Include="SaveStateTests.fs" />
     <Compile Include="PatTests.fs" />
+    <Compile Include="CopyTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

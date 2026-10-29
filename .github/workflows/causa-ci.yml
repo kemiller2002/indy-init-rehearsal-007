@@ -1,0 +1,153 @@
+# Causa CI: offline core checks (no secrets), live GitHub provider checks, Pages deploy,
+# and exact-SHA deployed acceptance. One run per ref; superseded runs are cancelled.
+name: causa-ci
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: causa-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: dotnet workload install wasm-tools
+      - run: npm ci
+      - name: Domain, save-state, copy and persistence acceptance tests (stateful fake)
+        run: dotnet run -c Release --project tests/Causa.Tests -- --summary 2>&1 | tee core-tests.txt
+      - name: PAT-12 compile-time negative check
+        run: dotnet fsi tools/acceptance.fsx negative | tee -a acceptance.jsonl
+      - name: Build the site
+        run: dotnet fsi build.fsx site
+      - name: PAT-13 production artifact scan
+        run: dotnet fsi tools/acceptance.fsx artifact dist/site | tee -a acceptance.jsonl
+      - run: dotnet build tests/Causa.TestServer -c Release
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Browser acceptance in Chromium and WebKit (fake provider)
+        run: npx playwright test
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-evidence-${{ github.sha }}
+          path: |
+            core-tests.txt
+            acceptance.jsonl
+            test-results/
+            playwright-report/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+          path: dist/site
+          include-hidden-files: true
+
+  live:
+    name: live-provider
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CAUSA_WRITE_TOKEN: ${{ secrets.CAUSA_WRITE_TOKEN }}
+      CAUSA_GITHUB_TOKEN: ${{ secrets.CAUSA_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Live persistence acceptance against the GitHub test repository
+        run: |
+          if [ -z "$CAUSA_WRITE_TOKEN" ]; then echo "LIVE: BLOCKED (CAUSA_WRITE_TOKEN is not available to this run)"; exit 1; fi
+          dotnet run -c Release --project tests/Causa.Tests -- --summary --filter "causa.persistence acceptance (live)" 2>&1 | tee live-tests.txt
+      - name: Live catalog read (EXT-DATA-013, PF-014)
+        run: |
+          dotnet build src/Causa.Persistence -c Release
+          if [ -z "$CAUSA_GITHUB_TOKEN" ]; then echo "LIVE CATALOG: BLOCKED (CAUSA_GITHUB_TOKEN is not available to this run)"; exit 1; fi
+          dotnet fsi tools/catalog.fsx 2>&1 | tee live-catalog.txt
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-evidence-${{ github.sha }}
+          path: |
+            live-tests.txt
+            live-catalog.txt
+
+  deploy:
+    name: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+          path: site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Deployed smoke (served build is this commit)
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            served=$(curl -fsS "${PAGE_URL%/}/build.json?n=$RANDOM" | sed -E 's/.*"sourceSha":"([0-9a-f]+)".*/\1/' || true)
+            [ "$served" = "$GITHUB_SHA" ] && { echo "deployed SHA $served = $GITHUB_SHA"; exit 0; }
+            sleep 15
+          done
+          echo "deployed SHA '$served' != $GITHUB_SHA"; exit 1
+
+  deployed-acceptance:
+    name: deployed-acceptance
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CAUSA_TARGET: live
+      CAUSA_BASE_URL: ${{ needs.deploy.outputs.url }}
+      CAUSA_WRITE_TOKEN: ${{ secrets.CAUSA_WRITE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: PAT-15 and browser persistence on the deployed exact SHA against live GitHub
+        run: |
+          export CAUSA_BASE_URL="${CAUSA_BASE_URL%/}"
+          npx playwright test
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-evidence-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
