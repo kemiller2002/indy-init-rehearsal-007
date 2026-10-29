@@ -39,7 +39,7 @@ let private path (p: string) = p.Split('/') |> Array.map segment |> String.conca
 let private repoUrl (c: Connection) = sprintf "%s/repos/%s/%s" (c.ApiBase.TrimEnd '/') (segment c.Owner) (segment c.Name)
 
 let private headers (c: Connection) accept =
-    [ "authorization", "Bearer " + c.Token; "accept", accept; "x-github-api-version", "2022-11-28" ]
+    [ "authorization", "Bearer " + c.Token; "accept", accept ]
 
 let private get c url representation =
     { Method = "GET"
