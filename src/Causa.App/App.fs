@@ -15,6 +15,7 @@ type Route =
     | Open of string
     | Help
     | Settings
+    | Administration
 
 type Connectivity =
     | Disconnected
@@ -118,6 +119,7 @@ let routeOf (l: Location) =
     if h.StartsWith "/i/" then Open(h.Substring 3)
     elif h = "/help" then Help
     elif h = "/settings" then Settings
+    elif h = "/admin" then Administration
     else Home
 
 let private send (m: Model) (pending: Request) (r: GitHub.Request) : Model * Effect list =

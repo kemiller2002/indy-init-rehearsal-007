@@ -197,6 +197,25 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
         b "routeHome" (m.Route = Home)
         b "routeHelp" (m.Route = Help)
         b "routeSettings" (m.Route = Settings)
+        b "routeAdmin" (m.Route = Administration)
+        "adminInvestigations",
+        VList(
+            m.Order
+            |> List.choose m.Sessions.TryFind
+            |> List.map (fun s ->
+                [ "id", VText s.Id
+                  "title", VText(titleOf s)
+                  "verification", VText(match s.Load with
+                                        | Ready when s.BaseFiles.IsSome -> "Verified: contract v1.0.0 and full replay, commit " + s.BaseCommit.Substring(0, 7)
+                                        | Ready -> "Not yet on GitHub"
+                                        | Pending -> "Loading"
+                                        | LoadFailed e -> "Refused: " + e)
+                  "save", VText(SaveState.name s.Save) ]))
+        t "admin.provider" (match m.Connection with Some c when c.ApiBase = defaultApi -> "GitHub (api.github.com)" | Some c -> "Test provider at " + c.ApiBase | None -> "Not connected")
+        t "admin.repository" (match m.Connection with Some c -> sprintf "%s/%s, branch %s" c.Owner c.Name c.Branch | None -> "Not connected")
+        t "admin.workspace" (match m.Connection with Some c -> c.Workspace | None -> "Not connected")
+        t "admin.head" (match m.Head with Some h -> "Branch head read at connection: " + h | None -> "Unknown")
+        t "admin.canWrite" (match m.Connectivity with Connected -> (if m.CanPush then "This credential can write to the repository" else "This credential can only read") | _ -> "Unknown")
         b "routeInvestigation" (session.IsSome)
         b "routeMissing" (match m.Route with Open id -> not (m.Sessions.ContainsKey id) | _ -> false)
         // Connect form
@@ -221,6 +240,8 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
                                  | _ -> "Loading investigation")
                   "problem", VText(s.Current |> Option.map (fun c -> c.OriginalProblem) |> Option.defaultValue "")
                   "lifecycle", VText(s.Current |> Option.map (fun c -> humanize c.Lifecycle) |> Option.defaultValue "")
+                  "activity", VText(s.Current |> Option.map (fun c -> "Last activity " + c.UpdatedAt.Replace("T", " ").Substring(0, 16) + " UTC") |> Option.defaultValue "")
+                  "contradictions", VText(s.Current |> Option.map (fun c -> sprintf "%d unresolved contradictions" (Causa.Domain.Derived.unresolvedContradictions c).Length) |> Option.defaultValue "")
                   "status", VText(match s.Load with
                                   | Pending -> "Loading from GitHub"
                                   | LoadFailed e when not m.Online -> "Unavailable offline (" + e + ")"
@@ -272,6 +293,14 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
         "hypothesisOptions", VList(options inv "hypothesis")
         "evidenceOptions", VList(options inv "evidence")
         "timeline", VList(session |> Option.map events |> Option.defaultValue [])
+        "nextSteps",
+        VList(
+            inv
+            |> Option.map Causa.Domain.Derived.nextSteps
+            |> Option.defaultValue []
+            |> List.distinctBy (fun n -> n.EntityId)
+            |> List.map (fun n -> [ "id", VText n.EntityId; "text", VText n.Text; "kind", VText(humanize n.Kind) ]))
+        b "hasNextSteps" (inv |> Option.exists (fun i -> not (Causa.Domain.Derived.nextSteps i).IsEmpty))
         "transitions", VList transitions
         "lifecycleActions", VList lifecycle
         b "hasSelection" selectedEntity.IsSome

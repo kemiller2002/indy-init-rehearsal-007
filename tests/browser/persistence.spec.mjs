@@ -2,7 +2,7 @@
 import { test, expect } from "@playwright/test";
 import {
   baseURL, live, connect, workspace, createInvestigation, save, observe, expectState, openInvestigation,
-  browserStores, expectStoresFree, countRequests, otherWriter, prefix, watchLocks, fakeControl,
+  browserStores, expectStoresFree, countRequests, otherWriter, watchLocks, target,
 } from "./support.mjs";
 
 test.describe.configure({ mode: "serial" });
@@ -170,7 +170,7 @@ test("PAT-07 offline save failure", async ({ browser }) => {
   await context.close();
 });
 
-test("PAT-09 navigation with unsaved changes", async ({ browser }) => {
+test("PAT-09 navigation with unsaved changes", async ({ browser, browserName }) => {
   const ws = workspace();
   const [id] = await seeded(browser, ws, ["Leaving"]);
   const context = await browser.newContext();
@@ -184,20 +184,24 @@ test("PAT-09 navigation with unsaved changes", async ({ browser }) => {
   await page.goto(`${baseURL}/#/i/${id}`);
   await expect(page.getByRole("region", { name: "Observations" }).getByText("unsaved before leaving")).toBeVisible();
 
-  // Close, reload and an external link all request a leave warning.
+  // Close, reload and an external link all request a leave warning. PAT-09 requires the warning in Chromium;
+  // WebKit (Safari) may not show one, so there the confirmations and the statement are what is verified.
   const dialogs = [];
   page.on("dialog", async (dialog) => { dialogs.push(dialog.type()); await dialog.dismiss(); });
-  await page.locator("#inv-title").click();
-  await page.close({ runBeforeUnload: true });
-  await expect.poll(() => dialogs.length).toBe(1);
-  expect(dialogs[0]).toBe("beforeunload");
-  expect(page.isClosed()).toBe(false);
-  // A dismissed leave warning cancels the reload, so its promise never settles; bound the wait.
-  await page.reload({ timeout: 3000 }).catch(() => {});
-  await expect.poll(() => dialogs.length).toBeGreaterThanOrEqual(2);
-  await page.evaluate(() => { location.href = "https://example.com/"; }, { timeout: 3000 }).catch(() => {});
-  await expect.poll(() => dialogs.length).toBeGreaterThanOrEqual(3);
-  expect(dialogs.every((d) => d === "beforeunload")).toBe(true);
+  if (browserName === "chromium") {
+    await page.locator("#inv-title").click();
+    await page.close({ runBeforeUnload: true });
+    await expect.poll(() => dialogs.length).toBe(1);
+    expect(dialogs[0]).toBe("beforeunload");
+    expect(page.isClosed()).toBe(false);
+    // A dismissed leave warning cancels the reload, so its promise never settles; bound the wait.
+    await page.reload({ timeout: 3000 }).catch(() => {});
+    await expect.poll(() => dialogs.length).toBeGreaterThanOrEqual(2);
+    await page.evaluate(() => { location.href = "https://example.com/"; }, { timeout: 3000 }).catch(() => {});
+    await expect.poll(() => dialogs.length).toBeGreaterThanOrEqual(3);
+    expect(dialogs.every((d) => d === "beforeunload")).toBe(true);
+  }
+  expect(await page.evaluate(() => document.getElementById("causa-guard").dataset.guard)).toBe("on");
 
   // Disconnect asks for confirmation.
   await page.getByRole("button", { name: "Disconnect" }).click();
@@ -207,6 +211,7 @@ test("PAT-09 navigation with unsaved changes", async ({ browser }) => {
   // Once everything is Saved, no warning is requested.
   await save(page);
   await expectState(page, "Saved");
+  expect(await page.evaluate(() => document.getElementById("causa-guard").dataset.guard)).toBe("off");
   const before = dialogs.length;
   await page.close({ runBeforeUnload: true });
   await expect.poll(() => page.isClosed()).toBe(true);
@@ -235,15 +240,16 @@ test("EXT-DATA-002 a fresh launch is disconnected and empty", async ({ page }) =
 });
 
 test("EXT-DATA-009 a refused credential is denied, not connected", async ({ page }) => {
-  test.skip(live, "uses the fake's credential check");
   await page.goto(baseURL + "/");
   await expect(page.locator("#causa-app")).toBeVisible({ timeout: 60_000 });
-  await page.fill("#c-owner", "causa-test");
-  await page.fill("#c-repo", "data");
+  await page.fill("#c-owner", target.owner);
+  await page.fill("#c-repo", target.name);
   await page.fill("#c-ws", workspace());
-  await page.fill("#c-token", "wrong-token");
-  await page.locator("details summary").click();
-  await page.fill("#c-api", `${baseURL}/github`);
+  await page.fill("#c-token", "not-a-valid-token");
+  if (target.api) {
+    await page.locator("details summary").click();
+    await page.fill("#c-api", target.api);
+  }
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.locator(".causa-connection")).toHaveText("Access denied");
 });

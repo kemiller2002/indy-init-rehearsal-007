@@ -66,4 +66,16 @@ if (kernel.status !== "running") {
   };
   new MutationObserver(observe).observe(guard, { attributes: true });
   observe();
+
+  // Build identity for the Administration page: static application metadata, not investigation data.
+  fetch("./build.json", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((build) => {
+      const text = build ? `Source commit ${build.sourceSha}` : "Unknown";
+      // Write only when different: the write is itself a mutation of the observed subtree.
+      const show = () => { const el = byId("causa-build"); if (el && el.textContent !== text) el.textContent = text; };
+      new MutationObserver(show).observe(byId("main"), { childList: true, subtree: true });
+      show();
+    })
+    .catch(() => {});
 }

@@ -36,6 +36,7 @@
         <a href="#/">Investigations</a>
         <a href="#/help">Help</a>
         <a href="#/settings">Settings</a>
+        <a href="#/admin">Administration</a>
       </nav>
       <div class="causa-header__status">
         <span class="causa-connection" data-text="connection"></span>
@@ -123,6 +124,7 @@
                     <h2><a data-bind-href="href"><span data-text="title"></span></a></h2>
                     <p data-text="problem"></p>
                     <p class="causa-meta"><span data-text="lifecycle"></span> · <span data-text="status"></span></p>
+                    <p class="causa-meta"><span data-text="activity"></span> · <span data-text="contradictions"></span></p>
                     <span class="ef-status-lozenge" data-bind-data-state="lozenge" data-text="saveState"></span>
                   </li>
                 </template>
@@ -231,6 +233,18 @@
               <h2 id="refused-title">Changes the investigation refused</h2>
               <p>These changes could not be applied to the GitHub version and were not kept:</p>
               <ul><template data-each="refused" data-key="n"><li data-text="summary"></li></template></ul>
+            </section>
+          </template>
+
+          <template data-if="hasNextSteps">
+            <section class="causa-panel" aria-labelledby="next-title">
+              <h2 id="next-title">Next steps</h2>
+              <p class="causa-help">Derived from this investigation's records; choose one to open its record in the inspector.</p>
+              <ul class="causa-list">
+                <template data-each="nextSteps" data-key="id">
+                  <li><button type="button" class="causa-entity" data-event="select"><span data-text="text"></span></button></li>
+                </template>
+              </ul>
             </section>
           </template>
 
@@ -454,6 +468,29 @@
           </dl>
           <h2>Two tabs</h2>
           <p>Each tab works on its own copy. A change made in one tab appears in another only after it is saved to GitHub and the other tab loads it from GitHub.</p>
+        </section>
+      </template>
+
+      <template data-if="routeAdmin">
+        <section class="causa-panel causa-prose" aria-labelledby="admin-title">
+          <h1 id="admin-title">Administration</h1>
+          <p class="causa-help">System information, read-only. Nothing here changes data.</p>
+          <dl>
+            <dt>Provider</dt><dd data-text="admin.provider"></dd>
+            <dt>Repository</dt><dd data-text="admin.repository"></dd>
+            <dt>Workspace</dt><dd data-text="admin.workspace"></dd>
+            <dt>Branch head</dt><dd data-text="admin.head"></dd>
+            <dt>Write access</dt><dd data-text="admin.canWrite"></dd>
+            <dt>Storage contract</dt><dd>Causa v1.0.0 (manifest, events, snapshot)</dd>
+            <dt>Components</dt><dd>Limen 0.9.1 · Forma (design system) 0.12.0 · .NET 10.0.402 WebAssembly</dd>
+            <dt>Build</dt><dd id="causa-build">Unknown</dd>
+          </dl>
+          <h2>Investigation data checks</h2>
+          <ul class="causa-list">
+            <template data-each="adminInvestigations" data-key="id">
+              <li><strong data-text="title"></strong>: <span data-text="verification"></span> (<span data-text="save"></span>)</li>
+            </template>
+          </ul>
         </section>
       </template>
 

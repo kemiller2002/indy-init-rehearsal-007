@@ -82,6 +82,34 @@ let tests =
                 Expect.equal targets (set [ "plausible"; "falsified"; "superseded" ]) "only legal moves offered"
             }
         ]
+        testList "derived next steps (UI-032)" [
+            test "a hypothesis without evidence is a next step that names it" {
+                let state, _ = decideAll basic
+                let steps = Derived.nextSteps state.Value
+                Expect.equal (steps |> List.map (fun s -> s.EntityId)) [ hypothesisId ] "one step, linked to its record"
+            }
+            test "relating evidence removes the step" {
+                let evidenceId = "66666666-6666-4666-8666-666666666666"
+                let state, _ =
+                    decideAll (
+                        basic
+                        @ [ cmd "EvidenceAdmitted" [
+                                "evidenceId", JString evidenceId
+                                "contentKind", JString "text"
+                                "content", JString "dark filament"
+                                "category", JString "directObservation"
+                                "source", JString "eyes"
+                                "capturedAt", JNull
+                                "verification", JString "unverified" ]
+                            cmd "EvidenceRelatedToHypothesis" [
+                                "relationshipId", JString "77777777-7777-4777-8777-777777777777"
+                                "evidenceId", JString evidenceId
+                                "hypothesisId", JString hypothesisId
+                                "kind", JString "supports"
+                                "rationale", JNull ] ])
+                Expect.isEmpty (Derived.nextSteps state.Value) "no invented work"
+            }
+        ]
         testList "file sets (causa-data v1.0.0 §4-§8)" [
             test "a built file set verifies and replays" {
                 let files = fileSet basic
