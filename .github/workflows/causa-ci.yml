@@ -77,12 +77,12 @@ jobs:
         with:
           global-json-file: global.json
       - name: Live catalog read (EXT-DATA-013, PF-014)
-        if: always()
         run: |
           dotnet build src/Causa.Persistence -c Release
           if [ -z "$CAUSA_GITHUB_TOKEN" ]; then echo "LIVE CATALOG: BLOCKED (CAUSA_GITHUB_TOKEN is not available to this run)"; exit 1; fi
           dotnet fsi tools/catalog.fsx 2>&1 | tee live-catalog.txt
       - name: Live persistence acceptance against the GitHub test repository
+        if: always()
         run: |
           if [ -z "$CAUSA_WRITE_TOKEN" ]; then echo "LIVE: BLOCKED (CAUSA_WRITE_TOKEN is not available to this run)"; exit 1; fi
           dotnet run -c Release --project tests/Causa.Tests -- --summary --filter "causa.persistence acceptance (live)" 2>&1 | tee live-tests.txt
