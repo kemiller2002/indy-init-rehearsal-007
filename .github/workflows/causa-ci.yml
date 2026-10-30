@@ -81,6 +81,8 @@ jobs:
           dotnet build src/Causa.Persistence -c Release
           if [ -z "$CAUSA_GITHUB_TOKEN" ]; then echo "LIVE CATALOG: BLOCKED (CAUSA_GITHUB_TOKEN is not available to this run)"; exit 1; fi
           dotnet fsi tools/catalog.fsx 2>&1 | tee live-catalog.txt
+      - name: Concurrent-writer probe (status and GitHub error types only)
+        run: node tools/concurrent-probe.mjs
       - name: Live persistence acceptance against the GitHub test repository
         if: always()
         run: |
