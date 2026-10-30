@@ -49,25 +49,47 @@ let workspaces =
 printfn "investigation folders by workspace:"
 for (ws, n) in workspaces do printfn "  %s: %d" ws n
 
-// The active catalog names its workspace or catalog folder somewhere in its string values.
-let rec strings = function JString s -> [ s ] | JArray xs -> List.collect strings xs | JObject fs -> fs |> List.collect (snd >> strings) | _ -> []
-let named = active |> parse |> Result.map strings |> Result.defaultValue []
-let chosen =
-    workspaces
-    |> List.map fst
-    |> List.filter (fun ws -> named |> List.exists (fun s -> s.TrimEnd('/') = ws || s.StartsWith(ws + "/") || ws.EndsWith("/" + s.TrimEnd('/'))))
-printfn "workspaces named by the active catalog: %s" (String.Join(", ", chosen))
+// The active catalog names its workspace and manifest (catalog/active.json: workspace, manifest).
+let activeJson = active |> parse |> Result.defaultWith failwith
+let named key = match field key activeJson with Some(JString v) -> v | _ -> failwithf "catalog/active.json has no %s" key
+let workspace = named "workspace"
+let catalogManifest = fileText (named "manifest")
+printfn "catalog manifest (%s):\n%s" (named "manifest") (if catalogManifest.Length > 6000 then catalogManifest.Substring(0, 6000) + "..." else catalogManifest)
+
+// Shape report: the field names the frozen contract uses, so the reader can be checked against real data.
+let rec shape (json: Json) =
+    match json with
+    | JObject fs -> "{" + String.Join(",", fs |> List.map (fun (k, v) -> k + ":" + shape v)) + "}"
+    | JArray [] -> "[]"
+    | JArray (x :: _) -> "[" + shape x + "]"
+    | JString _ -> "s" | JNumber _ -> "n" | JBool _ -> "b" | JNull -> "null"
+
+let prefix = workspace + "/investigations/"
+let ids = treePaths |> List.filter (fun p -> p.StartsWith prefix && p.EndsWith "/manifest.json") |> List.map (fun p -> p.Substring(prefix.Length).Split('/').[0]) |> List.distinct
+let filesOf id : Causa.Domain.FileSet.Files =
+    { Manifest = fileText (prefix + id + "/manifest.json"); Events = fileText (prefix + id + "/events.ndjson"); Snapshot = fileText (prefix + id + "/snapshot.json") }
+let all = ids |> List.map (fun id -> id, filesOf id)
+match all with
+| (id, f) :: _ ->
+    printfn "SHAPE manifest %s: %s" id (f.Manifest |> parse |> Result.map shape |> Result.defaultValue "unparseable")
+    printfn "SHAPE snapshot %s: %s" id (f.Snapshot |> parse |> Result.map (fun j -> match j with JObject fs -> String.Join(",", fs |> List.map (fun (k, v) -> k + (match k, v with "state", JObject sfs -> "{" + String.Join(",", sfs |> List.map fst) + "}" | _ -> ""))) | _ -> shape j) |> Result.defaultValue "unparseable")
+    printfn "FIRST EVENT %s: %s" id (f.Events.Split('\n').[0])
+| [] -> printfn "no investigations under %s" prefix
+let eventShapes =
+    all
+    |> List.collect (fun (_, f) -> f.Events.TrimEnd('\n').Split('\n') |> List.ofArray)
+    |> List.choose (fun line -> parse line |> Result.toOption)
+    |> List.map (fun e ->
+        let t = match field "eventType" e with Some(JString t) -> t | _ -> match field "type" e with Some(JString t) -> t | _ -> "?"
+        t, (match e with JObject fs -> String.Join(",", fs |> List.map fst) | _ -> ""), (field "payload" e |> Option.map shape |> Option.defaultValue "-"))
+    |> List.distinct
+for (t, keys, payload) in eventShapes do printfn "EVENT %s envelope=[%s] payload=%s" t keys payload
 
 let results =
-    [ for ws in chosen do
-        let prefix = ws + "/investigations/"
-        let ids = treePaths |> List.filter (fun p -> p.StartsWith prefix && p.EndsWith "/manifest.json") |> List.map (fun p -> p.Substring(prefix.Length).Split('/').[0]) |> List.distinct
-        for id in ids do
-            let files : Causa.Domain.FileSet.Files =
-                { Manifest = fileText (prefix + id + "/manifest.json"); Events = fileText (prefix + id + "/events.ndjson"); Snapshot = fileText (prefix + id + "/snapshot.json") }
-            match Causa.Domain.FileSet.verify id files with
-            | Ok v -> printfn "VERIFIED %s/%s: %s (version %d, %s)" ws id v.Investigation.Title v.Investigation.Version v.Investigation.Lifecycle; yield Ok id
-            | Error e -> printfn "REFUSED %s/%s: %s" ws id e; yield Error e ]
+    [ for (id, files) in all do
+        match Causa.Domain.FileSet.verify id files with
+        | Ok v -> printfn "VERIFIED %s/%s: %s (version %d, %s)" workspace id v.Investigation.Title v.Investigation.Version v.Investigation.Lifecycle; yield Ok id
+        | Error e -> printfn "REFUSED %s/%s: %s" workspace id e; yield Error e ]
 
 let verified = results |> List.filter Result.isOk |> List.length
 printfn "verdict: %s (%d verified, %d refused)" (if verified = 4 && results.Length = 4 then "PASS" else "FAIL") verified (results.Length - verified)
