@@ -66,6 +66,10 @@ jobs:
   live:
     name: live-provider
     needs: core
+    # Live writers share one test repository: never two at once, across every run of this workflow.
+    concurrency:
+      group: causa-live-writers
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -81,8 +85,6 @@ jobs:
           dotnet build src/Causa.Persistence -c Release
           if [ -z "$CAUSA_GITHUB_TOKEN" ]; then echo "LIVE CATALOG: BLOCKED (CAUSA_GITHUB_TOKEN is not available to this run)"; exit 1; fi
           dotnet fsi tools/catalog.fsx 2>&1 | tee live-catalog.txt
-      - name: Concurrent-writer probe (status and GitHub error types only)
-        run: node tools/concurrent-probe.mjs
       - name: Live persistence acceptance against the GitHub test repository
         if: always()
         run: |
@@ -136,6 +138,9 @@ jobs:
     name: deployed-acceptance
     # After live-provider, so two live writers never share the test repository at once.
     needs: [deploy, live]
+    concurrency:
+      group: causa-live-writers
+      cancel-in-progress: false
     if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30

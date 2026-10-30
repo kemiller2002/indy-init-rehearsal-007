@@ -53,6 +53,12 @@ let tests =
             Expect.equal (GitHub.classifyCommit (GitHub.Answered(403, Causa.Domain.Json.JObject [ "message", Causa.Domain.Json.JString "You have exceeded a secondary rate limit." ]))) GitHub.RateLimit "secondary rate limit"
             Expect.equal (GitHub.classifyCommit (forbidden "Resource not accessible by personal access token")) GitHub.PermissionRefused "a real permission refusal stays one"
         }
+        test "GitHub's moved-head race is a stale head, not a permission refusal (KD-022)" {
+            let forbidden m = GitHub.Answered(200, Causa.Domain.Json.JObject [ "data", Causa.Domain.Json.JObject [ "createCommitOnBranch", Causa.Domain.Json.JNull ]; "errors", Causa.Domain.Json.JArray [ Causa.Domain.Json.JObject [ "type", Causa.Domain.Json.JString "FORBIDDEN"; "message", Causa.Domain.Json.JString m ] ] ])
+            let sha c = String.replicate 40 c
+            Expect.equal (GitHub.classifyCommit (forbidden (sprintf "is at %s but expected %s" (sha "c") (sha "9")))) GitHub.StaleHead "the answer seen live in run 40993375765"
+            Expect.equal (GitHub.classifyCommit (forbidden "is at main but expected something")) GitHub.PermissionRefused "only the exact two-commit form"
+        }
         test "page copy has no forbidden persistence phrase" {
             let page = File.ReadAllText(Path.Combine(__SOURCE_DIRECTORY__, "../../web/index.html")).ToLowerInvariant()
             for phrase in forbiddenPhrases do Expect.isFalse (page.Contains phrase) phrase
