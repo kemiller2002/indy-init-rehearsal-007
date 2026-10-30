@@ -58,7 +58,9 @@ type Request =
     | PHead
     | PTree of head: string
     | PLoad of id: string * load: Load.Load
-    | PRefreshHead of id: string
+    /// A refresh, requested while the session was based on `fromBase`.
+    | PRefreshHead of id: string * fromBase: string
+    | PRefreshLoad of id: string * fromBase: string * load: Load.Load
     /// A conflict's GitHub version is read again, from the branch's current head (PERSIST-012).
     | PConflictHead of id: string
     | PTheirs of id: string * load: Load.Load
@@ -431,20 +433,30 @@ let private onReply (env: Env) (m: Model) (pending: Request) (reply: Reply) : Mo
                     Load = (if s.Current.IsSome then Ready else LoadFailed("Refused, because the data failed verification: " + e))
                     Fault = Some("The GitHub version failed verification: " + e) }), []
         | Load.NotRead other -> updateSession m id (fun s -> { s with Load = (if s.Current.IsSome then Ready else LoadFailed(readError other)); Fault = Some(readError other) }), []
-    | PRefreshHead id ->
+    | PRefreshLoad(id, fromBase, load) ->
+        match Load.onReply load reply (env.Context.Now()), m.Sessions.TryFind id with
+        | Load.Next(load', request), _ -> send m (PRefreshLoad(id, fromBase, load')) request
+        // The session moved on (a save confirmed) while this refresh read an older version: never roll it back.
+        | Load.Loaded _, Some s when s.BaseCommit <> fromBase -> m, []
+        | Load.Loaded(v, c), _ -> onLoaded m id (v, c)
+        | Load.Refused e, _ -> updateSession m id (fun s -> { s with Load = Ready; Fault = Some("The GitHub version failed verification: " + e) }), []
+        | Load.NotRead other, _ -> updateSession m id (fun s -> { s with Load = Ready; Fault = Some(readError other) }), []
+    | PRefreshHead(id, fromBase) ->
         match classifyRead decodeHead reply with
-        | Read h -> loadRequest m PLoad id h
+        | Read h -> loadRequest m (fun (id, load) -> PRefreshLoad(id, fromBase, load)) id h
         | other -> { m with Notice = "Could not read GitHub: " + readError other }, []
     | PConflictHead id ->
         match classifyRead decodeHead reply with
         | Read h -> loadRequest (withTheirs m id (fun ci -> { ci with Head = h; Theirs = None; TheirsConfirmation = None; TheirsError = None })) PTheirs id h
         | other -> withTheirs m id (fun ci -> { ci with TheirsError = Some(readError other) }), []
     | PTheirs(id, load) ->
+        // Only the read of the conflict's current head may fill it; an older read that finishes late is dropped.
+        let forCurrentHead (f: ConflictInfo -> ConflictInfo) (ci: ConflictInfo) = if ci.Head = Load.commit load then f ci else ci
         match Load.onReply load reply (env.Context.Now()) with
         | Load.Next(load', request) -> send m (PTheirs(id, load')) request
-        | Load.Loaded(v, c) -> withTheirs m id (fun ci -> { ci with Theirs = Some v; TheirsConfirmation = Some c; TheirsError = None }), []
-        | Load.Refused e -> withTheirs m id (fun ci -> { ci with TheirsError = Some e }), []
-        | Load.NotRead other -> withTheirs m id (fun ci -> { ci with TheirsError = Some(readError other) }), []
+        | Load.Loaded(v, c) -> withTheirs m id (forCurrentHead (fun ci -> { ci with Theirs = Some v; TheirsConfirmation = Some c; TheirsError = None })), []
+        | Load.Refused e -> withTheirs m id (forCurrentHead (fun ci -> { ci with TheirsError = Some e })), []
+        | Load.NotRead other -> withTheirs m id (forCurrentHead (fun ci -> { ci with TheirsError = Some(readError other) })), []
     | PSave id ->
         match m.Active with
         | Some(activeId, save) when activeId = id -> handleNext env m id (SaveProcess.onReply save reply (env.Context.Now()) (env.Nonce()))
@@ -462,7 +474,7 @@ let private reapply (env: Env) (m: Model) (id: string) =
         let final, accepted, refused = s.Unsaved |> List.fold folder (theirs.Investigation, [], [])
         let m1 =
             updateSession m id (fun s ->
-                { s with BaseCommit = h; BaseFiles = Some theirs.Files; BaseState = Some theirs.Investigation; Current = Some final
+                { s with BaseCommit = Confirmation.commit c; BaseFiles = Some theirs.Files; BaseState = Some theirs.Investigation; Current = Some final
                          Unsaved = accepted; Refused = refused; Conflict = None })
         applyInputs m1 id [ Reapplied(c, not accepted.IsEmpty, m.Online) ]
     | _ -> { m with Notice = "The GitHub version is still being read. Try again in a moment." }
@@ -472,7 +484,7 @@ let private discard (env: Env) (m: Model) (id: string) =
     | Some({ Conflict = Some { Theirs = Some theirs; TheirsConfirmation = Some c; Head = h; ConfirmDiscard = true } }) ->
         let m1 =
             updateSession m id (fun s ->
-                { s with BaseCommit = h; BaseFiles = Some theirs.Files; BaseState = Some theirs.Investigation; Current = Some theirs.Investigation
+                { s with BaseCommit = Confirmation.commit c; BaseFiles = Some theirs.Files; BaseState = Some theirs.Investigation; Current = Some theirs.Investigation
                          Unsaved = []; Refused = []; Conflict = None })
         applyInputs m1 id [ Discarded c ]
     | _ -> m
@@ -566,7 +578,7 @@ let update (env: Env) (m: Model) (msg: Inbound) : Model * Effect list =
         | "refresh", _, _ ->
             match current m, m.Connection with
             | Some id, Some conn when (match m.Sessions.TryFind id with Some s -> not (holdsWork m s) | None -> false) ->
-                send m (PRefreshHead id) (head conn (env.Nonce()))
+                send m (PRefreshHead(id, m.Sessions.[id].BaseCommit)) (head conn (env.Nonce()))
             | _ -> { m with Notice = "Save or resolve your changes before loading the GitHub version." }, []
         | "select", Some id, _ -> { m with Selected = (if m.Selected = Some id then None else Some id) }, []
         | "conflict.reread", _, _ -> (match current m with Some id -> rereadConflict env m id | None -> m, [])

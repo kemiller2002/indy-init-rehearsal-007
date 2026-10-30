@@ -52,3 +52,21 @@ It confirmed the first review's fixes as sound (read-back, state machine, networ
 | M1 | Medium | Fixed | contract-fixed values are checked: manifest `schemaVersion`, `semanticVersion`, `snapshotVersion`, `domainPacks`; snapshot `formatVersion`, `semanticVersion`, `projectionVersion` | `M1: values the contract fixes are refused when different` (4 forgeries) | killed; the live catalog check re-runs the reader on causa-data |
 | L1 | Low | Fixed | an "ahead" compare with no commits waits for another reconciliation read instead of throwing | `L1: …does not crash reconciliation` | killed |
 | L2 | Low | Fixed | a save waiting behind another stays in its own state (nothing is sent for it) with a notice, and is moved to Saving only when it starts | `L2: a save waiting behind another does not claim to be sending` | killed |
+
+## Found by the third independent review (verdict FAIL, 2026-10-30T03:30Z, main at 1298489)
+
+A third fresh reviewer re-reviewed main after the second remediation. Its verdict is recorded as given. Its reproductions E1-E3 are kept as `tests/Causa.Tests/ThirdReviewTests.fs`.
+
+| Finding | Severity | Status | Fix | Regression test | Mutation check |
+|---|---|---|---|---|---|
+| H1 | High | Fixed (introduced by the second remediation's re-read) | a late read of an older GitHub version is dropped unless it is the conflict's current head; reapply/discard take the base commit from the confirmation that carries the files, never from the conflict's head | E1 (late h1 read after a re-read at h2: C's change must survive) | the two guards cover each other: reverting either alone passes E1, reverting both fails it |
+| M1 | Medium | Fixed | a refresh remembers the base it was requested from and is dropped if a save moved the session on | E2 | killed |
+| M2 | Medium | Open (same as second review H2) | the public process APIs (`SaveProcess`, `Load`, `Reply`) let in-process code fabricate answers | — | — |
+| M3 | Medium | Open | a refused credential offers only Reconnect, which discards the tab's unsaved work after confirmation; there is no re-authentication that keeps work | — | — |
+| M4 | Medium | Open | a deleted or unverifiable GitHub version leaves the conflict without a resolution (work kept, never saved); a rebase-path read failure is reported as Save failed rather than Conflict | E3 guards the deleted case from being re-created | reviewer's mutant "deleted investigation is rebased" was caught only by E3, now shipped |
+| L1 | Low | Open | 5xx or undecodable reads on the rebase path are worded as "GitHub refused the change" | — | — |
+| L2 | Low | Open | the moved-head FORBIDDEN form is matched exactly; a variant would fall back to a permission refusal | KD-022 unit test | — |
+| L3 | Low | Open | an Unknown outcome awaiting Check again blocks other investigations' saves in the tab | — | — |
+| L4 | Low | Open | the review pane summarises the GitHub side in one line | — | — |
+| L5 | Low | Open | manifest `createdAt`/`updatedAt` and snapshot `generatedAt` are not checked against history | — | — |
+| test gap | — | Open | removing the `eventsSha256` check is not caught by any shipped test (the snapshot and manifest digests still bind the content) | — | reviewer's mutant survived |

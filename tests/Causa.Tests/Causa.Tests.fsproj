@@ -10,6 +10,7 @@
     <Compile Include="PatTests.fs" />
     <Compile Include="CopyTests.fs" />
     <Compile Include="RemediationTests.fs" />
+    <Compile Include="ThirdReviewTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
