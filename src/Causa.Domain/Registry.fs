@@ -1,5 +1,6 @@
-/// The Causa v1.0.0 event payload registry (causa-data contract §7) as data:
-/// each event type lists its exact payload fields. Unknown types and fields fail closed.
+/// The Causa v1.0.0 event payload registry as data: each event type lists its exact payload fields.
+/// Field names, event types and enumeration values follow the frozen causa-storage v1.0.0 contract as
+/// its released data uses them (KD-017). Unknown types and fields fail closed.
 module Causa.Domain.Registry
 
 open Causa.Domain.Json
@@ -14,7 +15,12 @@ type FieldKind =
     | Members
 
 module Enums =
+    let lifecycle = [ "draft"; "active"; "awaitingEvidence"; "awaitingVerification"; "resolved"; "closed"; "archived" ]
+    let lifecycleCommands =
+        [ "activateInvestigation"; "markAwaitingEvidence"; "markAwaitingVerification"; "resolveInvestigation"; "verificationFailed"
+          "closeInvestigation"; "reopenInvestigation"; "archiveInvestigation" ]
     let hypothesis = [ "proposed"; "plausible"; "supported"; "weakened"; "falsified"; "superseded" ]
+    let hypothesisCommands = [ "markPlausible"; "markSupported"; "markWeakened"; "falsify"; "supersede"; "reopen" ]
     let evidenceCategory = [ "directObservation"; "measurement"; "log"; "document"; "experimentResult"; "testimony"; "externalReference" ]
     let evidenceVerification = [ "unverified"; "partiallyVerified"; "verified"; "invalidated" ]
     let relationship = [ "supports"; "contradicts"; "discriminates"; "insufficient" ]
@@ -22,47 +28,46 @@ module Enums =
     let verificationOutcome = [ "satisfied"; "failed"; "inconclusive" ]
     let unknown = [ "identified"; "investigating"; "resolved"; "acceptedResidual"; "superseded" ]
     let contradiction = [ "detected"; "triaged"; "investigating"; "resolved"; "acceptedResidual"; "superseded" ]
+    let assumption = [ "explicitUnverified"; "provisionallyAccepted"; "verified"; "rejected"; "expired" ]
     let action = [ "proposed"; "approved"; "inProgress"; "blocked"; "completed"; "interpreted"; "rejected"; "cancelled" ]
     let cause = [ "proposed"; "confirmed"; "reopened"; "superseded" ]
-    let corrective = [ "proposed"; "approved"; "inProgress"; "implemented"; "awaitingVerification"; "verifiedEffective"; "verificationFailed"; "reworkRequired"; "cancelled" ]
+    let corrective =
+        [ "proposed"; "approved"; "inProgress"; "implemented"; "awaitingVerificationOfEffect"; "verifiedEffective"; "verificationFailed"
+          "reworkRequired"; "cancelled" ]
     let contentKind = [ "text"; "artifact" ]
-    let lifecycle = [ "draft"; "active"; "awaitingEvidence"; "awaitingVerification"; "resolved"; "closed"; "archived" ]
-
-let private reason = "reason", Text
+    let causalRole = [ "rootCause"; "trigger"; "contributingFactor"; "enablingCondition" ]
+    let actorKind = [ "human"; "agent"; "system"; "external"; "imported" ]
 
 let registry : Map<string, (string * FieldKind) list> =
     Map.ofList [
-        "InvestigationStarted", [ "title", Text; "originalProblem", Text ]
-        "InvestigationRenamed", [ "title", Text ]
-        "InvestigationActivated", [ reason ]
-        "InvestigationMarkedAwaitingEvidence", [ reason ]
-        "InvestigationMarkedAwaitingVerification", [ reason ]
-        "InvestigationResolved", [ reason; "conclusionId", Uuid ]
-        "InvestigationClosed", [ reason ]
-        "InvestigationReopened", [ reason ]
-        "InvestigationArchived", [ reason ]
+        "InvestigationStarted", [ "title", Text; "observationId", Uuid; "original", Text ]
+        "LifecycleChanged", [ "command", Enum Enums.lifecycleCommands; "from", Enum Enums.lifecycle; "to", Enum Enums.lifecycle; "reason", TextOrNull ]
         "ObservationRecorded", [ "observationId", Uuid; "original", Text; "observedAt", TimestampOrNull ]
-        "HypothesisProposed", [ "hypothesisId", Uuid; "statement", Text; "mechanism", TextOrNull ]
-        "HypothesisStateChanged", [ "hypothesisId", Uuid; "from", Enum Enums.hypothesis; "to", Enum Enums.hypothesis; reason; "evidenceIds", UuidList ]
+        "HypothesisRecorded", [ "hypothesisId", Uuid; "statement", Text; "mechanism", TextOrNull ]
+        "HypothesisTransitioned",
+        [ "hypothesisId", Uuid; "command", Enum Enums.hypothesisCommands; "from", Enum Enums.hypothesis; "to", Enum Enums.hypothesis
+          "reason", Text; "evidenceIds", UuidList ]
         "EvidenceAdmitted",
         [ "evidenceId", Uuid; "contentKind", Enum Enums.contentKind; "content", Text; "category", Enum Enums.evidenceCategory
-          "source", Text; "capturedAt", TimestampOrNull; "verification", Enum Enums.evidenceVerification ]
-        "EvidenceVerificationChanged", [ "evidenceId", Uuid; "from", Enum Enums.evidenceVerification; "to", Enum Enums.evidenceVerification; reason ]
-        "EvidenceRelatedToHypothesis", [ "relationshipId", Uuid; "evidenceId", Uuid; "hypothesisId", Uuid; "kind", Enum Enums.relationship; "rationale", TextOrNull ]
-        "UnknownIdentified", [ "unknownId", Uuid; "question", Text; "materiality", Enum Enums.materiality ]
-        "UnknownStateChanged", [ "unknownId", Uuid; "from", Enum Enums.unknown; "to", Enum Enums.unknown; "basis", Text ]
-        "AssumptionRecorded", [ "assumptionId", Uuid; "proposition", Text; "materiality", Enum Enums.materiality ]
-        "ContradictionDetected", [ "contradictionId", Uuid; "statement", Text; "evidenceIds", UuidList; "materiality", Enum Enums.materiality ]
-        "ContradictionStateChanged", [ "contradictionId", Uuid; "from", Enum Enums.contradiction; "to", Enum Enums.contradiction; "basis", Text ]
+          "source", Text; "capturedAt", TimestampOrNull ]
+        "EvidenceVerificationAssessed", [ "evidenceId", Uuid; "verification", Enum Enums.evidenceVerification ]
+        "EvidenceRelated", [ "relationshipId", Uuid; "evidenceId", Uuid; "hypothesisId", Uuid; "kind", Enum Enums.relationship; "rationale", TextOrNull ]
         "PredictionRecorded", [ "predictionId", Uuid; "hypothesisId", Uuid; "statement", Text; "strength", Text; "timing", Text ]
-        "InvestigationActionProposed", [ "actionId", Uuid; "kind", Text; "purpose", Text; "targetHypothesisIds", UuidList ]
-        "InvestigationActionStateChanged", [ "actionId", Uuid; "from", Enum Enums.action; "to", Enum Enums.action; reason ]
-        "FindingRecorded", [ "findingId", Uuid; "actionId", Uuid; "originalResult", Text ]
-        "CausalAssertionProposed", [ "causeId", Uuid; "outcome", Text; "members", Members; "mechanism", TextOrNull ]
-        "CausalAssertionStateChanged", [ "causeId", Uuid; "from", Enum Enums.cause; "to", Enum Enums.cause; reason ]
-        "CorrectiveActionProposed", [ "correctiveActionId", Uuid; "kind", Text; "description", Text; "targetCauseIds", UuidList ]
-        "CorrectiveActionStateChanged", [ "correctiveActionId", Uuid; "from", Enum Enums.corrective; "to", Enum Enums.corrective; reason ]
-        "VerificationCriterionRecorded", [ "criterionId", Uuid; "correctiveActionId", Uuid; "expectedOutcome", Text; "method", TextOrNull ]
+        "ActionRecorded", [ "actionId", Uuid; "kind", Text; "purpose", Text; "targetHypothesisIds", UuidList ]
+        "ActionTransitioned", [ "actionId", Uuid; "state", Enum Enums.action ]
+        "FindingRecorded", [ "findingId", Uuid; "actionId", Uuid; "originalResult", Text; "interpretation", TextOrNull ]
+        "NegativeKnowledgeEstablished", [ "negativeKnowledgeId", Uuid; "statement", Text; "scope", Text; "basisEvidenceIds", UuidList ]
+        "ContradictionRecorded", [ "contradictionId", Uuid; "statement", Text; "evidenceIds", UuidList; "materiality", Enum Enums.materiality ]
+        "ContradictionTransitioned", [ "contradictionId", Uuid; "state", Enum Enums.contradiction; "basis", Text ]
+        "UnknownIdentified", [ "unknownId", Uuid; "question", Text; "materiality", Enum Enums.materiality ]
+        "UnknownTransitioned", [ "unknownId", Uuid; "state", Enum Enums.unknown; "basis", Text ]
+        "AssumptionRecorded", [ "assumptionId", Uuid; "proposition", Text; "materiality", Enum Enums.materiality ]
+        "AssumptionTransitioned", [ "assumptionId", Uuid; "state", Enum Enums.assumption ]
+        "CausalAssertionRecorded", [ "causeId", Uuid; "outcome", Text; "members", Members; "mechanism", TextOrNull ]
+        "CausalAssertionConfirmed", [ "causeId", Uuid; "policy", Text ]
+        "CorrectiveActionRecorded", [ "correctiveActionId", Uuid; "kind", Text; "description", Text; "targetCauseIds", UuidList ]
+        "CriterionRecorded", [ "criterionId", Uuid; "correctiveActionId", Uuid; "expectedOutcome", Text; "method", TextOrNull ]
+        "CorrectiveActionTransitioned", [ "correctiveActionId", Uuid; "state", Enum Enums.corrective ]
         "VerificationRecorded", [ "verificationId", Uuid; "criterionId", Uuid; "outcome", Enum Enums.verificationOutcome; "evidenceIds", UuidList ]
         "ConclusionRecorded", [ "conclusionId", Uuid; "statement", Text; "strength", Text; "causeIds", UuidList; "residualUncertainty", TextOrNull ]
     ]
@@ -72,7 +77,7 @@ let private checkUuidList name =
     | Some(JArray items) ->
         let ids = items |> List.choose (function JString s when Text.isUuid s -> Some s | _ -> None)
         if ids.Length <> items.Length then Error(name + " must hold lowercase UUIDs")
-        elif ids <> (ids |> List.distinct |> List.sort) then Error(name + " must be sorted and unique")
+        elif ids.Length <> (List.distinct ids).Length then Error(name + " must not repeat an id")
         else Ok()
     | _ -> Error(name + " must be an array of UUIDs")
 
@@ -85,7 +90,8 @@ let private checkMembers =
                 do! onlyKeys [ "hypothesisId"; "role" ] m
                 let! h = str "hypothesisId" m
                 do! Result.require (Text.isUuid h) "members[].hypothesisId must be a UUID"
-                let! _ = nonEmpty "role" m
+                let! role = str "role" m
+                do! Result.require (List.contains role Enums.causalRole) "members[].role is not a causal role"
                 return ()
             })
         |> Result.map ignore

@@ -44,7 +44,7 @@ test("hypothesis, evidence, relationship, inspector, transition, lifecycle and r
   await expect(inspector.locator("#causa-transitions button", { hasText: "Mark supported" })).toBeVisible();
 
   await page.fill("#life-r", "Work has started");
-  await page.getByRole("button", { name: "Activated" }).click();
+  await page.getByRole("button", { name: "Mark active" }).click();
   await expect(page.locator(".causa-inv-header")).toContainText("Lifecycle: Active");
 
   await save(page);
@@ -57,7 +57,7 @@ test("hypothesis, evidence, relationship, inspector, transition, lifecycle and r
   await expectState(other, "Saved");
   await expect(other.locator(".causa-inv-header")).toContainText("Lifecycle: Active");
   await expect(other.getByRole("region", { name: "Hypotheses" }).getByText("Plausible")).toBeVisible();
-  await expect(other.getByRole("region", { name: "Timeline" })).toContainText("Hypothesis state changed");
+  await expect(other.getByRole("region", { name: "Timeline" })).toContainText("Hypothesis transitioned");
   await context.close();
 });
 

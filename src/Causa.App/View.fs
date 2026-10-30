@@ -132,7 +132,7 @@ let private events (s: Session) =
         [ "version", VText(string e.AggregateVersion)
           "type", VText(humanize e.EventType)
           "summary", VText(eventSummary e)
-          "at", VText(e.RecordedAt.Replace("T", " ").Substring(0, 16) + " UTC")
+          "at", VText(e.OccurredAt.Replace("T", " ").Substring(0, 16) + " UTC")
           "pending", VBool pending ])
 
 let private options (inv: Investigation option) kind =
@@ -159,7 +159,7 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
         match inv, session with
         | Some i, Some s when s.Conflict.IsNone ->
             legalLifecycle env.Context i
-            |> List.map (fun t -> [ "key", VText t; "label", VText((humanize (t.Replace("Investigation", ""))).Trim()) ])
+            |> List.map (fun t -> [ "key", VText t; "label", VText("Mark " + (humanize t).ToLowerInvariant()) ])
         | _ -> []
     let selectedLinks =
         match inv, selectedEntity with

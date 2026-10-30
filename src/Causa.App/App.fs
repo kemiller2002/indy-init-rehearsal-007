@@ -87,7 +87,7 @@ type Model =
 let defaultApi = "https://api.github.com"
 
 let init (sessionId: string) =
-    { Form = Map.ofList [ "connect.branch", "main"; "ev.category", "directObservation"; "unk.materiality", "material"; "con.strength", "probable" ]
+    { Form = Map.ofList [ "connect.branch", "main"; "ev.category", "directObservation"; "unk.materiality", "material"; "con.strength", "confirmedCause" ]
       Connection = None
       Connectivity = Disconnected
       CanPush = false
@@ -213,7 +213,7 @@ and startNext (env: Env) (m: Model) : Model * Effect list =
             let inv = s.Current.Value
             let added = s.Unsaved |> List.map snd
             let baseEvents = s.BaseFiles |> Option.map (fun f -> f.Events) |> Option.defaultValue ""
-            let files = FileSet.build baseEvents inv added (env.Context.Now())
+            let files = FileSet.build baseEvents inv added
             let m2 = updateSession m1 id (fun s -> { s with Sent = added.Length })
             let headline = sprintf "Causa: %s (version %d)" inv.Title inv.Version
             let next =
@@ -269,26 +269,26 @@ let private command (env: Env) (m: Model) (name: string) (key: string option) : 
         match name, key with
         | "obs.add", _ -> go "ObservationRecorded" [ "observationId", JString(newId ()); "original", t "obs.text"; "observedAt", JNull ] [ "obs.text" ] [ "obs.text" ]
         | "hyp.add", _ ->
-            go "HypothesisProposed" [ "hypothesisId", JString(newId ()); "statement", t "hyp.statement"; "mechanism", optText m "hyp.mechanism" ] [ "hyp.statement"; "hyp.mechanism" ] [ "hyp.statement" ]
+            go "HypothesisRecorded" [ "hypothesisId", JString(newId ()); "statement", t "hyp.statement"; "mechanism", optText m "hyp.mechanism" ] [ "hyp.statement"; "hyp.mechanism" ] [ "hyp.statement" ]
         | "ev.add", _ ->
             go
                 "EvidenceAdmitted"
                 [ "evidenceId", JString(newId ()); "contentKind", JString "text"; "content", t "ev.content"; "category", t "ev.category"
-                  "source", t "ev.source"; "capturedAt", JNull; "verification", JString "unverified" ]
+                  "source", t "ev.source"; "capturedAt", JNull ]
                 [ "ev.content"; "ev.source" ]
                 [ "ev.content"; "ev.source"; "ev.category" ]
         | "rel.add", _ ->
             go
-                "EvidenceRelatedToHypothesis"
+                "EvidenceRelated"
                 [ "relationshipId", JString(newId ()); "evidenceId", t "rel.evidence"; "hypothesisId", t "rel.hypothesis"; "kind", t "rel.kind"; "rationale", optText m "rel.rationale" ]
                 [ "rel.rationale" ]
                 [ "rel.evidence"; "rel.hypothesis"; "rel.kind" ]
         | "unk.add", _ -> go "UnknownIdentified" [ "unknownId", JString(newId ()); "question", t "unk.question"; "materiality", t "unk.materiality" ] [ "unk.question" ] [ "unk.question"; "unk.materiality" ]
         | "cause.add", _ ->
             go
-                "CausalAssertionProposed"
+                "CausalAssertionRecorded"
                 [ "causeId", JString(newId ()); "outcome", t "cause.outcome"
-                  "members", JArray [ JObject [ "hypothesisId", t "cause.hypothesis"; "role", JString "contributing" ] ]; "mechanism", JNull ]
+                  "members", JArray [ JObject [ "hypothesisId", t "cause.hypothesis"; "role", JString "rootCause" ] ]; "mechanism", JNull ]
                 [ "cause.outcome" ]
                 [ "cause.outcome"; "cause.hypothesis" ]
         | "con.add", _ ->
@@ -305,22 +305,18 @@ let private command (env: Env) (m: Model) (name: string) (key: string option) : 
         | "transition", Some k when k.Contains "|" ->
             let parts = k.Split('|')
             let eventType, target = parts.[0], parts.[1]
-            match m.Selected, stateChanges.TryFind eventType with
-            | Some entityId, Some(kind, idField) ->
-                let reasonField = if kind = "unknown" || kind = "contradiction" then "basis" else "reason"
-                let extra = if kind = "hypothesis" then [ "evidenceIds", JArray [] ] else []
-                go eventType ([ idField, JString entityId; "to", JString target; reasonField, t "transition.reason" ] @ extra) [ "transition.reason" ] [ "transition.reason" ]
+            match m.Selected, eventType with
+            | Some entityId, "HypothesisTransitioned" ->
+                go eventType [ "hypothesisId", JString entityId; "to", JString target; "reason", t "transition.reason"; "evidenceIds", JArray [] ] [ "transition.reason" ] [ "transition.reason" ]
+            | Some entityId, "CausalAssertionConfirmed" -> go eventType [ "causeId", JString entityId; "policy", JString "core-default/1" ] [] []
+            | Some entityId, _ ->
+                match stateChanges.TryFind eventType with
+                | Some(kind, idField, copied) ->
+                    let needs = if copied.IsEmpty then [] else [ "transition.reason" ]
+                    go eventType ([ idField, JString entityId; stateKey kind, JString target ] @ (copied |> List.map (fun c -> c, t "transition.reason"))) [ "transition.reason" ] needs
+                | None -> m
             | _ -> m
-        | "life", Some eventType ->
-            let conclusion =
-                m.Sessions.[id].Current
-                |> Option.bind (fun i -> i.Entities |> Map.toList |> List.map snd |> List.filter (fun e -> e.Kind = "conclusion") |> List.sortBy (fun e -> e.RecordedVersion) |> List.tryLast)
-            let fields =
-                match eventType, conclusion with
-                | "InvestigationResolved", Some c -> [ "reason", t "life.reason"; "conclusionId", JString c.Id ]
-                | _ -> [ "reason", t "life.reason" ]
-            go eventType fields [ "life.reason" ] [ "life.reason" ]
-        | "rename", _ -> go "InvestigationRenamed" [ "title", t "rename.title" ] [ "rename.title" ] [ "rename.title" ]
+        | "life", Some target -> go "LifecycleChanged" [ "to", JString target; "reason", optText m "life.reason" ] [ "life.reason" ] []
         | _ -> m
 
 // ---- Connecting and loading ----
@@ -477,7 +473,7 @@ let private createInvestigation (env: Env) (m: Model) =
     match m.Head with
     | Some h when required m [ "new.title"; "new.problem" ] ->
         let id = env.Context.NewId()
-        let cmd = { EventType = "InvestigationStarted"; Payload = JObject [ "title", JString((draft m "new.title").Trim()); "originalProblem", JString((draft m "new.problem").Trim()) ] }
+        let cmd = { EventType = "InvestigationStarted"; Payload = JObject [ "title", JString((draft m "new.title").Trim()); "observationId", JString(env.Context.NewId()); "original", JString((draft m "new.problem").Trim()) ] }
         match decide env.Context id None cmd with
         | Ok(envelope, inv) ->
             let s = { emptySession id h with Load = Ready; Current = Some inv; Unsaved = [ cmd, envelope ]; Save = (if m.Online then Unsaved else Offline) }

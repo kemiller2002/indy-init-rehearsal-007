@@ -27,17 +27,17 @@ let decideAll (cmds: Command list) =
 
 let cmd t fields = { EventType = t; Payload = JObject fields }
 
-let start = cmd "InvestigationStarted" [ "title", JString "Lamp failed"; "originalProblem", JString "The lamp is dark." ]
+let start = cmd "InvestigationStarted" [ "title", JString "Lamp failed"; "observationId", JString "99999999-9999-4999-8999-999999999999"; "original", JString "The lamp is dark." ]
 
 let hypothesisId = "22222222-2222-4222-8222-222222222222"
 
 let basic =
     [ start
-      cmd "HypothesisProposed" [ "hypothesisId", JString hypothesisId; "statement", JString "The bulb burned out"; "mechanism", JNull ] ]
+      cmd "HypothesisRecorded" [ "hypothesisId", JString hypothesisId; "statement", JString "The bulb burned out"; "mechanism", JNull ] ]
 
 let fileSet (cmds: Command list) =
     let state, events = decideAll cmds
-    build "" state.Value events "2026-10-29T23:00:00.000Z"
+    build "" state.Value events
 
 let tests =
     testList "domain" [
@@ -63,17 +63,25 @@ let tests =
         ]
         testList "transitions (STATE-TRANSITION-TABLES §2)" [
             let changeTo target =
-                cmd "HypothesisStateChanged" [ "hypothesisId", JString hypothesisId; "to", JString target; "reason", JString "because"; "evidenceIds", JArray [] ]
+                cmd "HypothesisTransitioned" [ "hypothesisId", JString hypothesisId; "to", JString target; "reason", JString "because"; "evidenceIds", JArray [] ]
             for target in Registry.Enums.hypothesis do
                 test (sprintf "proposed -> %s follows the table" target) {
                     let state, _ = decideAll basic
-                    let legal = Set.contains ("proposed", target) transitions.["hypothesis"]
+                    let legal = hypothesisCommands |> List.exists (fun (_, ps) -> List.contains ("proposed", target) ps)
                     Expect.equal (Result.isOk (decide ctx investigationId state (changeTo target))) legal "decide agrees with the table"
                 }
-            test "a resolution needs a recorded conclusion" {
-                let state, _ = decideAll (basic @ [ cmd "InvestigationActivated" [ "reason", JString "go" ] ])
-                let forged = cmd "InvestigationResolved" [ "reason", JString "done"; "conclusionId", JString "33333333-3333-4333-8333-333333333333" ]
-                Expect.isError (decide ctx investigationId state forged) "forged resolution refused"
+            test "a lifecycle change must follow the command table" {
+                let state, _ = decideAll basic
+                let skip = cmd "LifecycleChanged" [ "to", JString "resolved"; "reason", JNull ]
+                Expect.isError (decide ctx investigationId state skip) "draft cannot be resolved"
+                let activate = cmd "LifecycleChanged" [ "to", JString "active"; "reason", JNull ]
+                let env, next = decide ctx investigationId state activate |> Result.defaultWith failwith
+                Expect.equal next.Lifecycle "active" "activated"
+                Expect.equal (field "command" env.Payload) (Some(JString "activateInvestigation")) "the command is recorded"
+            }
+            test "InvestigationStarted records the first observation" {
+                let state, _ = decideAll [ start ]
+                Expect.equal (state.Value.Entities |> Map.toList |> List.map (fun (_, e) -> e.Kind)) [ "observation" ] "one observation"
             }
             test "legal targets come from the engine" {
                 let state, _ = decideAll basic
@@ -99,9 +107,8 @@ let tests =
                                 "content", JString "dark filament"
                                 "category", JString "directObservation"
                                 "source", JString "eyes"
-                                "capturedAt", JNull
-                                "verification", JString "unverified" ]
-                            cmd "EvidenceRelatedToHypothesis" [
+                                "capturedAt", JNull ]
+                            cmd "EvidenceRelated" [
                                 "relationshipId", JString "77777777-7777-4777-8777-777777777777"
                                 "evidenceId", JString evidenceId
                                 "hypothesisId", JString hypothesisId
@@ -115,7 +122,7 @@ let tests =
                 let files = fileSet basic
                 let v = verify investigationId files |> Result.defaultWith failwith
                 Expect.equal v.Investigation.Version 2L "replayed version"
-                Expect.equal v.Investigation.Entities.Count 1 "one hypothesis"
+                Expect.equal v.Investigation.Entities.Count 2 "the first observation and one hypothesis"
             }
             test "appending keeps the earlier event bytes" {
                 let files = fileSet basic
@@ -123,7 +130,7 @@ let tests =
                 let env, next =
                     decide ctx investigationId (Some v.Investigation) (cmd "ObservationRecorded" [ "observationId", JString "44444444-4444-4444-8444-444444444444"; "original", JString "dark"; "observedAt", JNull ])
                     |> Result.defaultWith failwith
-                let files2 = build files.Events next [ env ] "2026-10-29T23:01:00.000Z"
+                let files2 = build files.Events next [ env ]
                 Expect.stringStarts files2.Events files.Events "history is append-only"
                 Expect.isOk (verify investigationId files2) "the appended file set verifies"
             }
@@ -136,9 +143,10 @@ let tests =
             negative "a missing version" (fun f -> { f with Events = lines.[0] + "\n" })
             negative "a manifest hash mismatch" (fun f -> { f with Manifest = f.Manifest.Replace("\"eventCount\":2", "\"eventCount\":3") })
             negative "the wrong investigation id" (fun f -> { f with Events = f.Events.Replace(investigationId, "55555555-5555-4555-8555-555555555555") })
-            negative "an unknown event type" (fun f -> { f with Events = f.Events.Replace("HypothesisProposed", "HypothesisGuessed") })
+            negative "an unknown event type" (fun f -> { f with Events = f.Events.Replace("HypothesisRecorded", "HypothesisGuessed") })
             negative "CRLF line endings" (fun f -> { f with Events = f.Events.Replace("\n", "\r\n") })
             negative "a snapshot that disagrees with history" (fun f -> { f with Snapshot = f.Snapshot.Replace("Lamp failed", "Lamp fine") })
+            negative "a snapshot whose entity state disagrees with history" (fun f -> { f with Snapshot = f.Snapshot.Replace("\"state\":\"proposed\"", "\"state\":\"supported\"") })
             negative "an unsupported format version" (fun f -> { f with Manifest = f.Manifest.Replace("\"formatVersion\":\"1.0.0\"", "\"formatVersion\":\"2.0.0\"") })
         ]
     ]

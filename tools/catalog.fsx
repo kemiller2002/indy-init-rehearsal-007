@@ -56,94 +56,46 @@ let workspace = named "workspace"
 let catalogManifest = fileText (named "manifest")
 printfn "catalog manifest (%s):\n%s" (named "manifest") (if catalogManifest.Length > 6000 then catalogManifest.Substring(0, 6000) + "..." else catalogManifest)
 
-// Shape report: the field names the frozen contract uses, so the reader can be checked against real data.
-let rec shape (json: Json) =
-    match json with
-    | JObject fs -> "{" + String.Join(",", fs |> List.map (fun (k, v) -> k + ":" + shape v)) + "}"
-    | JArray [] -> "[]"
-    | JArray (x :: _) -> "[" + shape x + "]"
-    | JString _ -> "s" | JNumber _ -> "n" | JBool _ -> "b" | JNull -> "null"
-
 let prefix = workspace + "/investigations/"
 let ids = treePaths |> List.filter (fun p -> p.StartsWith prefix && p.EndsWith "/manifest.json") |> List.map (fun p -> p.Substring(prefix.Length).Split('/').[0]) |> List.distinct
 let filesOf id : Causa.Domain.FileSet.Files =
     { Manifest = fileText (prefix + id + "/manifest.json"); Events = fileText (prefix + id + "/events.ndjson"); Snapshot = fileText (prefix + id + "/snapshot.json") }
-let all = ids |> List.map (fun id -> id, filesOf id)
-match all with
-| (id, f) :: _ ->
-    printfn "SHAPE manifest %s: %s" id (f.Manifest |> parse |> Result.map shape |> Result.defaultValue "unparseable")
-    printfn "SHAPE snapshot %s: %s" id (f.Snapshot |> parse |> Result.map (fun j -> match j with JObject fs -> String.Join(",", fs |> List.map (fun (k, v) -> k + (match k, v with "state", JObject sfs -> "{" + String.Join(",", sfs |> List.map fst) + "}" | _ -> ""))) | _ -> shape j) |> Result.defaultValue "unparseable")
-    printfn "FIRST EVENT %s: %s" id (f.Events.Split('\n').[0])
-| [] -> printfn "no investigations under %s" prefix
-let eventShapes =
-    all
-    |> List.collect (fun (_, f) -> f.Events.TrimEnd('\n').Split('\n') |> List.ofArray)
-    |> List.choose (fun line -> parse line |> Result.toOption)
-    |> List.map (fun e ->
-        let t = match field "eventType" e with Some(JString t) -> t | _ -> match field "type" e with Some(JString t) -> t | _ -> "?"
-        t, (match e with JObject fs -> String.Join(",", fs |> List.map fst) | _ -> ""), (field "payload" e |> Option.map shape |> Option.defaultValue "-"))
-    |> List.distinct
-for (t, keys, payload) in eventShapes do printfn "EVENT %s envelope=[%s] payload=%s" t keys payload
 
-// Enumerations actually used: distinct short values of each payload string field, per event type.
-let isIdOrTime (v: string) = Causa.Domain.Prelude.Text.isUuid v || Causa.Domain.Prelude.Text.isTimestamp v
-let enumValues =
-    all
-    |> List.collect (fun (_, f) -> f.Events.TrimEnd('\n').Split('\n') |> List.ofArray)
-    |> List.choose (fun line -> parse line |> Result.toOption)
-    |> List.collect (fun e ->
-        let t = match field "eventType" e with Some(JString t) -> t | _ -> "?"
-        let rec strs prefix j =
-            match j with
-            | JObject fs -> fs |> List.collect (fun (k, v) -> strs (prefix + "." + k) v)
-            | JArray xs -> xs |> List.collect (strs (prefix + "[]"))
-            | JString s when s.Length <= 48 && not (isIdOrTime s) -> [ prefix, s ]
-            | _ -> []
-        (strs (t + ".payload") (defaultArg (field "payload" e) JNull)) @ (strs (t + ".actor") (defaultArg (field "actor" e) JNull)))
-    |> List.groupBy fst
-    |> List.map (fun (k, vs) -> k, vs |> List.map snd |> List.distinct |> List.sort)
-for (k, vs) in enumValues do
-    if vs.Length <= 25 then printfn "ENUM %s = %s" k (String.Join(" | ", vs)) else printfn "FREE %s (%d distinct)" k vs.Length
-
-// Snapshot entity shapes and the digest definitions.
-for (id, f) in all |> List.truncate 1 do
-    match parse f.Snapshot with
-    | Ok snap ->
-        match field "state" snap with
-        | Some(JObject fs) ->
-            for (k, v) in fs do
-                match v with
-                | JArray(x :: _) -> printfn "STATE %s[] = %s" k (shape x)
-                | other -> printfn "STATE %s = %s" k (shape other)
-            for k in [ "hypotheses"; "evidence"; "actions"; "causes"; "observations" ] do
-                match fs |> List.tryFind (fst >> (=) k) |> Option.map snd with
-                | Some(JArray(x :: _)) -> let t = compact x in printfn "SAMPLE %s: %s" k (if t.Length > 700 then t.Substring(0, 700) + "..." else t)
-                | _ -> ()
-        | _ -> ()
-    | Error e -> printfn "snapshot unparseable: %s" e
-let caseOf id =
+let cases =
     match parse catalogManifest |> Result.toOption |> Option.bind (field "cases") with
-    | Some(JArray cs) -> cs |> List.tryFind (fun c -> field "investigationId" c = Some(JString id))
-    | _ -> None
-for (id, f) in all do
-    let m = parse f.Manifest |> Result.defaultValue JNull
-    let snap = parse f.Snapshot |> Result.defaultValue JNull
-    let txt k j = match field k j with Some(JString s) -> s | _ -> "-"
-    let c = caseOf id |> Option.defaultValue JNull
-    printfn "DIGEST %s events raw=%b | snapshot canonical=%b raw=%b | state canonical=%b(expectedState) | manifest canonical=%b raw=%b | rawNewline snapshot=%b" id
-        (sha256Hex (utf8 f.Events) = txt "eventsSha256" m)
-        (canonicalSha256 snap = txt "snapshotSha256" m) (sha256Hex (utf8 f.Snapshot) = txt "snapshotSha256" m)
-        (field "state" snap |> Option.map canonicalSha256 = Some(txt "expectedStateSha256" c))
-        (canonicalSha256 m = txt "manifestSha256" c) (sha256Hex (utf8 f.Manifest) = txt "manifestSha256" c)
-        (f.Snapshot.EndsWith "\n")
-    printfn "MANIFEST %s %s" id (compact m)
+    | Some(JArray cs) -> cs
+    | _ -> failwith "the catalog manifest lists no cases"
+let caseText k c = match field k c with Some(JString v) -> v | _ -> ""
+let caseInt k c = match field k c with Some(JNumber v) -> int64 v | _ -> -1L
 
-let results =
-    [ for (id, files) in all do
-        match Causa.Domain.FileSet.verify id files with
-        | Ok v -> printfn "VERIFIED %s/%s: %s (version %d, %s)" workspace id v.Investigation.Title v.Investigation.Version v.Investigation.Lifecycle; yield Ok id
-        | Error e -> printfn "REFUSED %s/%s: %s" workspace id e; yield Error e ]
+let check (c: Json) =
+    let id = caseText "investigationId" c
+    if not (List.contains id ids) then Error(sprintf "%s: listed in the catalog but absent from %s" id workspace)
+    else
+        let files = filesOf id
+        let prefixLine = sprintf "%s (%s)" (caseText "caseKey" c) id
+        match Causa.Domain.FileSet.parseEvents files.Events |> Result.bind Causa.Domain.Engine.replay with
+        | Error e -> Error(sprintf "%s: refused by replay: %s" prefixLine e)
+        | Ok inv ->
+            let snapshotState = parse files.Snapshot |> Result.toOption |> Option.bind (field "state") |> Option.defaultValue JNull
+            let replayed = Causa.Domain.FileSet.stateJson inv
+            let diffs = Causa.Domain.FileSet.diffPaths "state" snapshotState replayed
+            for d in diffs |> List.truncate 40 do printfn "  DIFF %s %s" (caseText "caseKey" c) d
+            if diffs.Length > 40 then printfn "  DIFF %s ... %d more" (caseText "caseKey" c) (diffs.Length - 40)
+            let expectations =
+                [ "version", inv.Version = caseInt "expectedVersion" c
+                  "lifecycle", inv.Lifecycle = caseText "expectedLifecycle" c
+                  "state digest", canonicalSha256 replayed = caseText "expectedStateSha256" c
+                  "events digest", sha256Hex (utf8 files.Events) = caseText "eventsSha256" c ]
+            let failed = expectations |> List.filter (snd >> not) |> List.map fst
+            match failed, Causa.Domain.FileSet.verify id files with
+            | [], Ok v -> Ok(sprintf "%s: VERIFIED by full contract validation and replay: version %d, %s, state digest matches the catalog" prefixLine v.Investigation.Version v.Investigation.Lifecycle)
+            | _, Error e -> Error(sprintf "%s: refused: %s" prefixLine e)
+            | missing, _ -> Error(sprintf "%s: replay differs from the catalog on %s" prefixLine (String.Join(", ", missing)))
 
+let results = cases |> List.map check
+for r in results do (match r with Ok m -> printfn "%s" m | Error e -> printfn "REFUSED %s" e)
 let verified = results |> List.filter Result.isOk |> List.length
-printfn "verdict: %s (%d verified, %d refused)" (if verified = 4 && results.Length = 4 then "PASS" else "FAIL") verified (results.Length - verified)
-exit (if verified = 4 && results.Length = 4 then 0 else 1)
+let pass = verified = 4 && results.Length = 4
+printfn "verdict: %s (%d of %d catalog cases verified)" (if pass then "PASS" else "FAIL") verified results.Length
+exit (if pass then 0 else 1)

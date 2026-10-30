@@ -150,7 +150,7 @@ let private transition (w: World) (t: Tab) id hypothesisId target =
     goTo w.Driver t id
     send w.Driver t (Limen.Event("select", Some hypothesisId, None))
     fill w.Driver t "transition.reason" ("moved to " + target)
-    send w.Driver t (Limen.Event("transition", Some("HypothesisStateChanged|" + target), None))
+    send w.Driver t (Limen.Event("transition", Some("HypothesisTransitioned|" + target), None))
 
 let pat05 (w: World) =
     let id = seed w 1 |> List.head
