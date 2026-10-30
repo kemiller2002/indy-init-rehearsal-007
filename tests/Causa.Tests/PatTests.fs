@@ -220,6 +220,15 @@ let pat06Applied (w: World) =
     Expect.equal ((mutations w.Driver).Length - before) 1 "the applied mutation is confirmed, not resent"
     Expect.equal (count "uncertain" (githubEvents w id)) 1 "written exactly once"
 
+/// GitHub applied the commit, its answer was lost, and the first reconciliation read does not see it yet.
+let pat06Lagging (w: World) =
+    let id, a = unknownSetup w
+    w.Fake.Value(fun s -> { s with Behaviour = { s.Behaviour with LaggingCompares = 1 } })
+    w.Driver.Net.Mutations <- [ DropAnswer ]
+    save w.Driver a id
+    expectState a id "Saved"
+    Expect.equal (count "uncertain" (githubEvents w id)) 1 "written exactly once, never reported as a conflict"
+
 let pat06NotApplied (w: World) =
     let id, a = unknownSetup w
     w.Driver.Net.Mutations <- [ DropRequest ]
@@ -329,6 +338,7 @@ let scenarios (mk: unit -> World) (liveCapable: bool) =
       run "PAT-06 lost answer after GitHub applied it" pat06Applied
       run "PAT-06 lost request, head unchanged" pat06NotApplied
       run "PAT-06 lost request, head moved" pat06Moved
+      yield! fakeOnly "PAT-06 applied but not yet visible to reconciliation" pat06Lagging
       yield! fakeOnly "PAT-06 marker with different bytes" pat06Mismatch
       yield! fakeOnly "PAT-06 rewritten history" pat06Rewritten
       run "PAT-06 failing reconciliation reads" pat06ReadFails

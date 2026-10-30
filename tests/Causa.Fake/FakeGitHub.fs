@@ -35,7 +35,9 @@ type Behaviour =
       /// The next mutation is refused with this fault.
       NextCommitFault: CommitFault option
       /// The next applied mutation stores different bytes than it was sent.
-      CorruptNextApply: bool }
+      CorruptNextApply: bool
+      /// The next compare answers are computed against the head before the latest commit (a lagging view).
+      LaggingCompares: int }
 
 type State =
     { Owner: string
@@ -54,7 +56,7 @@ type Answer =
     | NetworkFailure
     | AnswerLost
 
-let calm = { LoseNext = []; NetworkDown = false; ReadsDown = false; AdvanceBeforeEveryMutation = false; NextCommitFault = None; CorruptNextApply = false }
+let calm = { LoseNext = []; NetworkDown = false; ReadsDown = false; AdvanceBeforeEveryMutation = false; NextCommitFault = None; CorruptNextApply = false; LaggingCompares = 0 }
 
 let private sha (seed: string) =
     Security.Cryptography.SHA1.HashData(Encoding.UTF8.GetBytes seed) |> Convert.ToHexString |> fun s -> s.ToLowerInvariant()
@@ -200,7 +202,11 @@ let handle (s: State) (httpMethod: string) (path: string) (authorization: string
             let spec = r.Substring "/compare/".Length
             match spec.Split("...") with
             | [| b; h |] ->
-                let headSha = if Uri.UnescapeDataString h = s.Branch then s.Head else h
-                log "compare", compareJson s b headSha
+                let current = if Uri.UnescapeDataString h = s.Branch then s.Head else h
+                let lagging = s.Behaviour.LaggingCompares > 0 && Uri.UnescapeDataString h = s.Branch
+                let headSha = if lagging then defaultArg (headCommit s).Parent s.Head else current
+                let s' = if lagging then { s with Behaviour = { s.Behaviour with LaggingCompares = s.Behaviour.LaggingCompares - 1 } } else s
+                let logged = { s' with Log = s'.Log @ [ "compare", path ] }
+                logged, compareJson s b headSha
             | _ -> log "compare", notFound
         | _ -> s, notFound

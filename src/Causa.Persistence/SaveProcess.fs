@@ -26,6 +26,7 @@ type Phase =
     | ReadingBack of commit: string * got: Map<string, string>
     | CheckingHead
     | ComparingFiles of newHead: string * got: Map<string, string>
+    | CheckingOwnWrites of newHead: string
     | Reconciling
     | WaitingToReconcile of automatic: bool
 
@@ -39,6 +40,8 @@ type Save =
       SentEvents: int
       Session: string
       Sequence: int
+      /// Every write marker this save request has sent, oldest first.
+      SentMarkers: string list
       Expected: string
       Mutations: int
       ReadsThisOutcome: int
@@ -69,7 +72,8 @@ let private sendCommit (s: Save) (inputs: SaveInput list) : Next =
     if s.Mutations >= maxMutations then Finish(Stopped, inputs @ [ Failed RepositoryKeptChanging ])
     elif not (insidePrefix s) then Finish(Stopped, inputs @ [ Failed(Rejected "the commit would change files outside this investigation") ])
     else
-        let s' = { s with Mutations = s.Mutations + 1; Sequence = s.Sequence + 1; Phase = Committing }
+        let s0 = { s with Mutations = s.Mutations + 1; Sequence = s.Sequence + 1; Phase = Committing }
+        let s' = { s0 with SentMarkers = s0.SentMarkers @ [ marker s0 ] }
         Send(s', createCommit s.Connection s'.Expected s.Headline (marker s') (commitFiles s'), inputs @ [ MutationSent ])
 
 let private readFile (s: Save) (commit: string) (got: Map<string, string>) =
@@ -79,7 +83,7 @@ let private readFile (s: Save) (commit: string) (got: Map<string, string>) =
 let start (connection: Connection) (investigationId: string) (prefix: string) (baseCommit: string) (baseFiles: Files option) (files: Files) (sentEvents: int) (session: string) (sequence: int) (headline: string) : Next =
     sendCommit
         { Connection = connection; InvestigationId = investigationId; Prefix = prefix; BaseCommit = baseCommit; BaseFiles = baseFiles; Files = files
-          SentEvents = sentEvents; Session = session; Sequence = sequence; Expected = baseCommit
+          SentEvents = sentEvents; Session = session; Sequence = sequence; SentMarkers = []; Expected = baseCommit
           Mutations = 0; ReadsThisOutcome = 0; AutomaticReads = 0; Phase = Committing; Headline = headline }
         []
 
@@ -114,6 +118,16 @@ let private readFailure (s: Save) (answer: ReadAnswer<'a>) : Next =
 
 let private hasMarker (m: string) (message: string) =
     message.Split('\n') |> Array.exists (fun line -> line.Trim() = markerTrailer + ": " + m)
+
+/// The newest commit after the base that carries one of this save request's markers.
+let private ownCommit (s: Save) (commits: (string * string) list) =
+    commits |> List.rev |> List.tryFind (fun (_, message) -> s.SentMarkers |> List.exists (fun m -> hasMarker m message)) |> Option.map fst
+
+/// The investigation's files changed since the base. Before calling it a conflict, check whether the
+/// change is this save's own earlier write whose answer was lost or not yet visible (PERSIST-015).
+let private changedSinceBase (s: Save) (newHead: string) (nonce: string) : Next =
+    if s.SentMarkers.IsEmpty then Finish(ConflictAt newHead, [ StaleConflict ])
+    else Send({ s with Phase = CheckingOwnWrites newHead }, compare s.Connection s.BaseCommit newHead nonce, [])
 
 /// Advances the save with the reply to the request it last sent.
 let onReply (s: Save) (reply: Reply) (now: string) (nonce: string) : Next =
@@ -157,17 +171,27 @@ let onReply (s: Save) (reply: Reply) (now: string) (nonce: string) : Next =
             match readFile s newHead got' with
             | Some request -> Send({ s with Phase = ComparingFiles(newHead, got') }, request, [])
             | None when s.BaseFiles = Some(assemble got') -> sendCommit { s with Expected = newHead } [ StaleUnrelated ]
-            | None -> Finish(ConflictAt newHead, [ StaleConflict ])
+            | None -> changedSinceBase s newHead nonce
         | Missing when s.BaseFiles.IsNone && got.IsEmpty ->
             // A new investigation whose files are still absent: the branch moved for unrelated changes.
             sendCommit { s with Expected = newHead } [ StaleUnrelated ]
-        | Missing -> Finish(ConflictAt newHead, [ StaleConflict ])
+        | Missing -> changedSinceBase s newHead nonce
+        | other -> readFailure s other
+    | CheckingOwnWrites newHead ->
+        match classifyRead decodeCompare reply with
+        | Read cmp ->
+            match ownCommit s cmp.Commits with
+            | Some sha ->
+                let s' = { s with Phase = ReadingBack(sha, Map.empty) }
+                Send(s', (readFile s' sha Map.empty).Value, [])
+            | None -> Finish(ConflictAt newHead, [ StaleConflict ])
+        | Missing -> Finish(Stopped, [ Failed HistoryRewritten ])
         | other -> readFailure s other
     | Reconciling ->
         match classifyRead decodeCompare reply with
         | Read cmp when cmp.Status = "ahead" || cmp.Status = "identical" ->
-            match cmp.Commits |> List.tryFind (snd >> hasMarker (marker s)) with
-            | Some(sha, _) ->
+            match ownCommit s cmp.Commits with
+            | Some sha ->
                 let s' = { s with Phase = ReadingBack(sha, Map.empty) }
                 Send(s', (readFile s' sha Map.empty).Value, [ StaleUnrelated ])
             | None when cmp.Status = "identical" -> sendCommit s [ NothingWritten ]
