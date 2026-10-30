@@ -491,7 +491,10 @@ let private createInvestigation (env: Env) (m: Model) =
     | Some _ -> { m with Notice = "Give the investigation a title and describe the problem." }, ""
     | None -> { m with Notice = "Connect to a repository first." }, ""
 
-let anyUnsaved (m: Model) = m.Sessions |> Map.exists (fun _ s -> SaveState.needsLeaveWarning s.Save)
+/// Only a loaded investigation has a save state; one still loading, or refused, holds nothing to lose.
+let isLoaded (s: Session) = s.Load = Ready
+
+let anyUnsaved (m: Model) = m.Sessions |> Map.exists (fun _ s -> isLoaded s && SaveState.needsLeaveWarning s.Save)
 
 let update (env: Env) (m: Model) (msg: Inbound) : Model * Effect list =
     match msg with

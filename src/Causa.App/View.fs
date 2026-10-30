@@ -147,8 +147,8 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
     let connected = m.Connectivity = Connected
     let session = match m.Route with Open id -> m.Sessions.TryFind id | _ -> None
     let inv = session |> Option.bind (fun s -> s.Current)
-    let ind = session |> Option.map (indicator m)
-    let notSaved = m.Order |> List.choose m.Sessions.TryFind |> List.filter (fun s -> SaveState.needsLeaveWarning s.Save)
+    let ind = session |> Option.filter isLoaded |> Option.map (indicator m)
+    let notSaved = m.Order |> List.choose m.Sessions.TryFind |> List.filter (fun s -> isLoaded s && SaveState.needsLeaveWarning s.Save)
     let selectedEntity = match inv, m.Selected with Some i, Some id -> i.Entities.TryFind id | _ -> None
     let transitions =
         match inv, selectedEntity, session with
@@ -300,10 +300,10 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
         b "save.canRetry" (ind |> Option.exists (fun i -> i.CanRetry))
         b "save.canReconnect" (ind |> Option.exists (fun i -> i.CanReconnect))
         b "save.canCheckAgain" (ind |> Option.exists (fun i -> i.CanCheckAgain))
-        b "save.isSaved" (match session with Some { Save = Saved _ } -> true | _ -> false)
-        b "save.isOperation" (match session with Some { Save = (UnknownOutcome | SaveFailed _) } -> true | _ -> false)
+        b "save.isSaved" (match session with Some({ Save = Saved _ } as s) -> isLoaded s | _ -> false)
+        b "save.isOperation" (match session with Some({ Save = (UnknownOutcome | SaveFailed _) } as s) -> isLoaded s | _ -> false)
         b "save.isConflict" (ind |> Option.exists (fun i -> i.InConflict))
-        b "save.isPlain" (match session with Some { Save = (UnknownOutcome | SaveFailed _ | Conflict) } -> false | _ -> true)
+        b "save.isPlain" (match session with Some({ Save = (UnknownOutcome | SaveFailed _ | Conflict) }) -> false | Some s -> isLoaded s | None -> false)
         t "save.fault" (session |> Option.bind (fun s -> s.Fault) |> Option.defaultValue "")
         "observations", VList(entities inv "observation" m.Selected)
         "hypotheses", VList(entities inv "hypothesis" m.Selected)
