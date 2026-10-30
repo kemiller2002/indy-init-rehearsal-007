@@ -1,0 +1,73 @@
+{
+  "schema": "indy-init.rehearsal-preflight/1",
+  "rehearsal": "007",
+  "recordedAt": "2026-10-29T22:44:00Z",
+  "agent": "Claude Code (cloud session session_01G1iECdaTWsbm5P9ZJ1nuMG)",
+  "verdict": "NOT_READY",
+  "officialStart": null,
+  "summary": "Environment, toolchain, credentials and clean-build provenance are ready. The frozen R7 requirements package does not exist yet (no v4 compiled package or R7 verification plan), and owner decisions DEC-R7-008..012 and the starting-state cleanup are unmerged. The timer was not started.",
+  "requirements": {
+    "repository": "kemiller2002/Indy-init",
+    "commit": "826f60f8d75d5aafb73767bef4d7d9d786e21c9a",
+    "baselineId": "BL-CAUSA-INDY-INIT-8445ca11986f",
+    "baselineFile": "requirements/causa-requirements-baseline-r7.json",
+    "baselineFileSha256": "579cd8f5953c4bd218332426e86cc87edb029ebc51968c8ad417ff50b0898dab",
+    "baselineStillCurrent": "PASS: regenerated at 826f60f (BL-CAUSA-INDY-INIT-826f60f8d75d), 517/517 requirements, 0 changed, all 20 source-document digests identical",
+    "persistenceRequirementsSha256": "e062197caf024d79d0476d53b49014b8dbb0712340fa6a68e7a033a5130a0267",
+    "ownerDecisionsInEffect": "DEC-R7-001..007 (kickoff/rehearsal-007/owner-decisions.json sha256 3985122408f8861320391f69bac60ab8fabccc0a8659d7f438991bcf9d296565)",
+    "latestCompiledPackage": {
+      "path": "requirements-compiled/v3",
+      "boundBaseline": "BL-CAUSA-INDY-INIT-856157a78d47 (Rehearsal 6)",
+      "verificationPlanSha256": "0292f208d566907e5c9112d8a5f93747ff6a76aab08191145d95542963e4e94a",
+      "packageManifestSha256": "cd41e33e17374a48b6ad5b533a09a2db103b97eb998bd5fdb658ab8e1ebaf973",
+      "usableForR7": false,
+      "reason": "Bound to the R6 baseline; does not classify the 255 PERSIST obligations; the R7 compile with v3 curation fails V09, V11, V17, V18 (READINESS-ASSESSMENT K3)"
+    }
+  },
+  "checks": [
+    {"id": "PF-GH-01", "check": "GitHub access (MCP, user kemiller2002)", "state": "PASS"},
+    {"id": "PF-GH-02", "check": "Requirements repository read access", "state": "PASS"},
+    {"id": "PF-GH-03", "check": "Application repository read/write access (push scope attached)", "state": "PASS"},
+    {"id": "PF-GH-04", "check": "GitHub Actions available on rehearsal repo", "state": "PASS", "evidence": "25 prior runs; praxis-autonomy and credential-probe workflows executed"},
+    {"id": "PF-TOOL-01", "check": ".NET SDK 10.0.402 per global.json", "state": "PASS", "evidence": "installed via dotnet-install.sh; dotnet --version = 10.0.402"},
+    {"id": "PF-TOOL-02", "check": "wasm-tools workload", "state": "PASS"},
+    {"id": "PF-TOOL-03", "check": "FAKE build availability", "state": "PASS", "evidence": "fake-cli 6.2.0 on nuget.org"},
+    {"id": "PF-TOOL-04", "check": "Node and npm registry", "state": "PASS", "evidence": "node 22; @echelon-foundry/limen 0.9.1, @echelon-foundry/design-system 0.12.0 downloaded"},
+    {"id": "PF-TOOL-05", "check": "Indy-init requirements compiler build and offline tests", "state": "PASS"},
+    {"id": "PF-TOOL-06", "check": "F# and Python baseline generators agree byte for byte", "state": "PASS"},
+    {"id": "PF-REQ-01", "check": "R7 persistence requirements validator", "state": "PASS", "evidence": "R7-01..R7-10 PASS; self-test: planted defects caught, unmutated inputs PASS"},
+    {"id": "PF-REQ-02", "check": "Frozen R7 compiled package and verification plan (K3, v4 cut)", "state": "BLOCKED", "critical": true, "needs": "v4 cut from BL-CAUSA-INDY-INIT-8445ca11986f (or a re-pinned baseline including DEC-R7-008..010), compiled with PASS and plan-readiness READY, merged by the owner. Indy-init is read-only for this run."},
+    {"id": "PF-REQ-03", "check": "Owner decisions DEC-R7-008..012 in effect", "state": "BLOCKED", "critical": true, "needs": "Owner merge of Indy-init #47 (draft, open). Under RDP-003 they are not in effect."},
+    {"id": "PF-REQ-04", "check": "Kickoff release set (echelon-current 1.33.0) recorded", "state": "BLOCKED", "needs": "Indy-init #46 open, unmerged; pre-lock release comparison not yet run"},
+    {"id": "PF-CRED-01", "check": "Credential separation CAUSA_GITHUB_TOKEN / CAUSA_WRITE_TOKEN", "state": "PASS", "evidence": "credential-probe run 40941709769 (2026-10-29T19:37Z), 8/8 PASS, failures=0, no value printed"},
+    {"id": "PF-DATA-01", "check": "Four-case causa-data catalog (K7, DEC-R7-006)", "state": "UNVERIFIED", "note": "PR #47 states causa-data #6 merged as 37d6b0a; Indy-init preflight-tooling pins causa-data cf1db84 template demonstration-v1. causa-data was not inspected because it is outside this run's authorized repositories."},
+    {"id": "PF-ECH-01", "check": "Praxis, Ordo, Dokimos, Percepta, Folio, Conditor availability", "state": "PARTIAL", "note": "No published NuGet/npm packages; GitHub releases in repositories outside this session's scope. Praxis runs in rehearsal CI from source at 023b208 (independent-review job). Locally unavailable without attaching those repositories."},
+    {"id": "PF-PROV-01", "check": "No preexisting Causa implementation in rehearsal repo", "state": "PASS", "evidence": "main 9c3aaf6: 5 tracked files, all bootstrap/config; no application source"},
+    {"id": "PF-PROV-02", "check": "Rehearsal repo matches DEC-R7-012 starting state (tree of df336cd)", "state": "BLOCKED", "needs": "PR #21 (removes readiness/praxis-autonomy-readiness-20261029-01.md) open; it implements DEC-R7-012, which takes effect only when Indy-init #47 merges; 23 leftover branches still present"},
+    {"id": "PF-GATE-01", "check": "Enforced merge gate (UAE-R7-12 ruleset)", "state": "NOT_ENFORCED", "note": "main reports protected=false; merges would be advisory-gated and the report must say so"},
+    {"id": "PF-TEL-01", "check": "Token telemetry source", "state": "UNKNOWN", "note": "To be investigated at kickoff; no counts invented"}
+  ],
+  "provenance": {
+    "repository": "kemiller2002/indy-init-rehearsal-007",
+    "commit": "9c3aaf64a5ff76dc240f178c60f935cc8d7ea648",
+    "parent": "df336cd122e385ca26e5ad5860c01eee93f88f26",
+    "tree": "b1740c8b231bd6207e94d6b6e75e1ff74aca7c53",
+    "gitStatus": "clean",
+    "trackedFiles": [
+      {"path": ".github/workflows/praxis-autonomy.yml", "blob": "f26b7faf03918d54d08513d2c61e513c595492aa"},
+      {"path": ".praxis/autonomy/policy.json", "blob": "8273629721e9162f52899bfc83a4d05f3683898a"},
+      {"path": "README.md", "blob": "47abd47c6d11e368a14e88992b36c5e01b2c93a4"},
+      {"path": "readiness/praxis-autonomy-readiness-20261029-01.md", "blob": "575c757f370d5f5b3ceaec465469c680802b9370"},
+      {"path": "tests/verify.sh", "blob": "4855ee88c7cf7d4b0c410921d07dd3a557180908"}
+    ],
+    "sourceFiles": [],
+    "priorRehearsalRepositoriesAccessed": false
+  },
+  "ownerActionsToReachReady": [
+    "Merge Indy-init #47 (DEC-R7-008..012) and #46 (release set).",
+    "Cut and merge compiled package v4 for the R7 baseline (K3a..K3f), or authorize this agent to prepare it in Indy-init as a preflight exception.",
+    "Then: merge rehearsal PR #21 and delete leftover branches (DEC-R7-012) — this agent may do it once #47 is merged.",
+    "Optional: UAE-R7-12 ruleset on main; otherwise the run reports an advisory merge gate.",
+    "Authorize kickoff (T0)."
+  ]
+}

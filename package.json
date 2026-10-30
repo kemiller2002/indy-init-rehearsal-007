@@ -1,0 +1,13 @@
+{
+  "name": "causa-rehearsal-007",
+  "private": true,
+  "description": "Pinned published Echelon browser packages and the browser test runner for Causa.",
+  "dependencies": {
+    "@echelon-foundry/design-system": "0.12.0",
+    "@echelon-foundry/limen": "0.9.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.63.0"
+  }
+}

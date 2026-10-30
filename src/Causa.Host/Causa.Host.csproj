@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <!-- The only C# in Causa (KD-007): F# cannot run the JSExport source generator,
+       so this shim exposes the F# engine's dispatch to the Limen dotnet-wasm host. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <Nullable>enable</Nullable>
+    <!-- FSharp.Core ships ILLink substitutions for resources it no longer embeds. -->
+    <NoWarn>$(NoWarn);IL2040</NoWarn>
+    <!-- FSharp.Core and the Causa assemblies are rooted below, so the trimmer's reflection
+         warnings about them do not apply; they must not fail the build. -->
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+  </PropertyGroup>
+  <ItemGroup>
+    <TrimmerRootAssembly Include="FSharp.Core" />
+    <TrimmerRootAssembly Include="Causa.Domain" />
+    <TrimmerRootAssembly Include="Causa.Persistence" />
+    <TrimmerRootAssembly Include="Causa.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Causa.App/Causa.App.fsproj" />
+  </ItemGroup>
+</Project>

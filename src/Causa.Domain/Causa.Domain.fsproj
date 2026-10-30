@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="Prelude.fs" />
+    <Compile Include="Json.fs" />
+    <Compile Include="Registry.fs" />
+    <Compile Include="Engine.fs" />
+    <Compile Include="FileSet.fs" />
+    <Compile Include="Derived.fs" />
+  </ItemGroup>
+</Project>

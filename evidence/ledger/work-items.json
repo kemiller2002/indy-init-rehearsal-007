@@ -1,0 +1,15 @@
+{
+  "schema": "causa.rehearsal-ledger/1",
+  "note": "Praxis is not installed in this session (only its CI review job runs it), so the execution ledger is kept here in Praxis's work-item shape. Token telemetry is recorded separately in evidence/telemetry/.",
+  "t0": "2026-10-29T22:49:55Z",
+  "agent": "Claude Code (cloud) session_01G1iECdaTWsbm5P9ZJ1nuMG",
+  "workItems": [
+    {"id": "R7-WI-01", "title": "Domain kernel: wire contract, registry, decide/evolve, file sets", "requirements": ["CAUSA-DATA-CONTRACT §2-§8", "STATE-TRANSITION-TABLES §1-§17", "EXT-DATA-008", "EXT-DATA-011", "STORAGE-006"], "scope": ["src/Causa.Domain/**", "tests/Causa.Tests/DomainTests.fs"], "status": "implemented", "evidence": "tests/Causa.Tests DomainTests"},
+    {"id": "R7-WI-02", "title": "Persistence: save-state machine, GitHub protocol, save process", "requirements": ["PERSIST-002..PERSIST-025", "PERSIST-051 (PAT-12)"], "scope": ["src/Causa.Persistence/**", "tests/negative/**"], "status": "implemented", "evidence": "PAT-12 tests; tools/acceptance.fsx negative"},
+    {"id": "R7-WI-03", "title": "Limen application, Forma page, connect/load/edit/save/conflict UI", "requirements": ["PERSIST-030..PERSIST-033", "EXT-DATA-002..007", "UI-006", "UI-010", "WASM-LOAD-001..005"], "scope": ["src/Causa.App/**", "src/Causa.Host/**", "web/**"], "status": "implemented", "evidence": "browser suite"},
+    {"id": "R7-WI-04", "title": "Persistence acceptance: stateful fake, harness, PAT-02..PAT-10 (fake and live)", "requirements": ["PERSIST-025", "PERSIST-041..PERSIST-047", "PERSIST-049"], "scope": ["tests/Causa.Fake/**", "tests/Causa.Tests/**"], "status": "implemented", "evidence": "core job; live-provider job"},
+    {"id": "R7-WI-05", "title": "Browser acceptance: PAT-01/02/04/05/07/09/11/15", "requirements": ["PERSIST-040", "PERSIST-046", "PERSIST-048", "PERSIST-050", "PERSIST-054"], "scope": ["tests/browser/**", "tests/Causa.TestServer/**", "playwright.config.mjs"], "status": "implemented", "evidence": "core job (Chromium, WebKit); deployed-acceptance job"},
+    {"id": "R7-WI-06", "title": "Artifact, copy and provenance checks: PAT-13, PAT-14", "requirements": ["PERSIST-052", "PERSIST-053", "PERSIST-026"], "scope": ["tools/acceptance.fsx", "tests/Causa.Tests/CopyTests.fs"], "status": "implemented; provenance comparison BLOCKED for this agent (KD-009)"},
+    {"id": "R7-WI-07", "title": "CI, Pages deployment, exact-SHA smoke, live catalog", "requirements": ["PF-011", "PF-012", "PF-014", "PF-015", "PF-020", "EXT-DATA-013"], "scope": [".github/workflows/causa-ci.yml", "build.fsx", "tools/catalog.fsx"], "status": "in progress"}
+  ]
+}
