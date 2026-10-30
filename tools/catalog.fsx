@@ -85,6 +85,59 @@ let eventShapes =
     |> List.distinct
 for (t, keys, payload) in eventShapes do printfn "EVENT %s envelope=[%s] payload=%s" t keys payload
 
+// Enumerations actually used: distinct short values of each payload string field, per event type.
+let isIdOrTime (v: string) = Causa.Domain.Prelude.Text.isUuid v || Causa.Domain.Prelude.Text.isTimestamp v
+let enumValues =
+    all
+    |> List.collect (fun (_, f) -> f.Events.TrimEnd('\n').Split('\n') |> List.ofArray)
+    |> List.choose (fun line -> parse line |> Result.toOption)
+    |> List.collect (fun e ->
+        let t = match field "eventType" e with Some(JString t) -> t | _ -> "?"
+        let rec strs prefix j =
+            match j with
+            | JObject fs -> fs |> List.collect (fun (k, v) -> strs (prefix + "." + k) v)
+            | JArray xs -> xs |> List.collect (strs (prefix + "[]"))
+            | JString s when s.Length <= 48 && not (isIdOrTime s) -> [ prefix, s ]
+            | _ -> []
+        (strs (t + ".payload") (defaultArg (field "payload" e) JNull)) @ (strs (t + ".actor") (defaultArg (field "actor" e) JNull)))
+    |> List.groupBy fst
+    |> List.map (fun (k, vs) -> k, vs |> List.map snd |> List.distinct |> List.sort)
+for (k, vs) in enumValues do
+    if vs.Length <= 25 then printfn "ENUM %s = %s" k (String.Join(" | ", vs)) else printfn "FREE %s (%d distinct)" k vs.Length
+
+// Snapshot entity shapes and the digest definitions.
+for (id, f) in all |> List.truncate 1 do
+    match parse f.Snapshot with
+    | Ok snap ->
+        match field "state" snap with
+        | Some(JObject fs) ->
+            for (k, v) in fs do
+                match v with
+                | JArray(x :: _) -> printfn "STATE %s[] = %s" k (shape x)
+                | other -> printfn "STATE %s = %s" k (shape other)
+            for k in [ "hypotheses"; "evidence"; "actions"; "causes"; "observations" ] do
+                match fs |> List.tryFind (fst >> (=) k) |> Option.map snd with
+                | Some(JArray(x :: _)) -> let t = compact x in printfn "SAMPLE %s: %s" k (if t.Length > 700 then t.Substring(0, 700) + "..." else t)
+                | _ -> ()
+        | _ -> ()
+    | Error e -> printfn "snapshot unparseable: %s" e
+let caseOf id =
+    match parse catalogManifest |> Result.toOption |> Option.bind (field "cases") with
+    | Some(JArray cs) -> cs |> List.tryFind (fun c -> field "investigationId" c = Some(JString id))
+    | _ -> None
+for (id, f) in all do
+    let m = parse f.Manifest |> Result.defaultValue JNull
+    let snap = parse f.Snapshot |> Result.defaultValue JNull
+    let txt k j = match field k j with Some(JString s) -> s | _ -> "-"
+    let c = caseOf id |> Option.defaultValue JNull
+    printfn "DIGEST %s events raw=%b | snapshot canonical=%b raw=%b | state canonical=%b(expectedState) | manifest canonical=%b raw=%b | rawNewline snapshot=%b" id
+        (sha256Hex (utf8 f.Events) = txt "eventsSha256" m)
+        (canonicalSha256 snap = txt "snapshotSha256" m) (sha256Hex (utf8 f.Snapshot) = txt "snapshotSha256" m)
+        (field "state" snap |> Option.map canonicalSha256 = Some(txt "expectedStateSha256" c))
+        (canonicalSha256 m = txt "manifestSha256" c) (sha256Hex (utf8 f.Manifest) = txt "manifestSha256" c)
+        (f.Snapshot.EndsWith "\n")
+    printfn "MANIFEST %s %s" id (compact m)
+
 let results =
     [ for (id, files) in all do
         match Causa.Domain.FileSet.verify id files with
