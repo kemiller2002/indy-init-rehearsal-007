@@ -113,7 +113,13 @@ export async function connect(page, ws) {
 export const lozenge = (page) => page.locator(".causa-inv-header .ef-status-lozenge").first();
 
 export async function expectState(page, state, timeout = 30_000) {
-  await expect(lozenge(page)).toHaveText(state, { timeout });
+  try {
+    await expect(lozenge(page)).toHaveText(state, { timeout });
+  } catch (error) {
+    // Name the state and the cause the app reported, so a failure explains itself (no credentials are on the page).
+    const explanation = await page.locator(".causa-inv-header").innerText().catch(() => "(no header)");
+    throw new Error(`expected ${state}; the indicator reports:\n${explanation}\n${error.message}`);
+  }
 }
 
 export async function createInvestigation(page, title) {
