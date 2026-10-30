@@ -93,6 +93,34 @@ let check (c: Json) =
             | _, Error e -> Error(sprintf "%s: refused: %s" prefixLine e)
             | missing, _ -> Error(sprintf "%s: replay differs from the catalog on %s" prefixLine (String.Join(", ", missing)))
 
+// awaitingSinceVersion rule finder: which event version the recorded value equals (booleans only, no values).
+for c in cases do
+    let id = caseText "investigationId" c
+    if List.contains id ids then
+        let files = filesOf id
+        let events = Causa.Domain.FileSet.parseEvents files.Events |> Result.defaultValue []
+        let recorded =
+            match parse files.Snapshot |> Result.toOption |> Option.bind (field "state") |> Option.bind (field "correctiveActions") with
+            | Some(JArray xs) -> xs
+            | _ -> []
+        for (i, ca) in List.indexed recorded do
+            let caId = match field "id" ca with Some(JString v) -> v | _ -> ""
+            let expected = match field "awaitingSinceVersion" ca with Some(JNumber v) -> Some(int64 v) | _ -> None
+            let mine = events |> List.filter (fun e -> field "correctiveActionId" e.Payload = Some(JString caId))
+            let transitions = mine |> List.filter (fun e -> e.EventType = "CorrectiveActionTransitioned")
+            let versionOf (f: Causa.Domain.Engine.Envelope -> bool) = mine |> List.tryFind f |> Option.map (fun e -> e.AggregateVersion)
+            let toState st = versionOf (fun e -> e.EventType = "CorrectiveActionTransitioned" && field "state" e.Payload = Some(JString st))
+            let criterion = events |> List.tryFind (fun e -> e.EventType = "CriterionRecorded" && field "correctiveActionId" e.Payload = Some(JString caId)) |> Option.map (fun e -> e.AggregateVersion)
+            let candidates =
+                [ "creation", versionOf (fun e -> e.EventType = "CorrectiveActionRecorded")
+                  "firstTransition", transitions |> List.tryHead |> Option.map (fun e -> e.AggregateVersion)
+                  "lastTransition", transitions |> List.tryLast |> Option.map (fun e -> e.AggregateVersion)
+                  "approved", toState "approved"; "inProgress", toState "inProgress"; "implemented", toState "implemented"
+                  "awaiting", toState "awaitingVerificationOfEffect"; "criterion", criterion ]
+            let state = match field "state" ca with Some(JString v) -> v | _ -> "?"
+            printfn "AWAIT %s[%d] state=%s %s" (caseText "caseKey" c) i state
+                (String.Join(" ", candidates |> List.map (fun (n, v) -> sprintf "%s=%b" n (v.IsSome && v = expected))))
+
 let results = cases |> List.map check
 for r in results do (match r with Ok m -> printfn "%s" m | Error e -> printfn "REFUSED %s" e)
 let verified = results |> List.filter Result.isOk |> List.length
