@@ -119,6 +119,8 @@ for (const removeLocks of [false, true]) {
     const sent = counts.mutations;
     await first.getByRole("button", { name: "Review the differences" }).click();
     await expect(first.locator(".ef-diff-viewer")).toBeVisible();
+    // Reapply acts on the GitHub version once it has been read and verified, which the review shows by its commit.
+    await expect(first.locator(".ef-diff-viewer")).toContainText(/commit [0-9a-f]{7}/, { timeout: 30_000 });
     await first.getByRole("button", { name: "Discard my changes and load the GitHub version" }).click();
     await expect(first.getByRole("alertdialog")).toBeVisible();
     await first.getByRole("button", { name: "Keep my changes" }).click();
