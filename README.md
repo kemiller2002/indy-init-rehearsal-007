@@ -35,7 +35,7 @@ npx playwright test                # PAT-01/02/04/05/07/09/11/15 in Chromium and
 
 Run the app locally against the fake: `dotnet tests/Causa.TestServer/bin/Release/net10.0/Causa.TestServer.dll dist/site 4300`,
 open http://127.0.0.1:4300, and connect to owner `causa-test`, repository `data`, any workspace folder, token `test-token`,
-with the advanced API address `http://127.0.0.1:4300/github`. The page shows that it is using a test provider.
+with the advanced API address `/github` (the same-origin test stand-in; the app sends the credential only to `https://api.github.com` or its own origin). The page shows that it is using a test provider.
 
 Live provider tests run when `CAUSA_WRITE_TOKEN` is set (write access to the test repository only);
 the live catalog check uses the read-only `CAUSA_GITHUB_TOKEN`. Without them the result is BLOCKED, never PASS.
