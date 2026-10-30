@@ -16,6 +16,11 @@ concurrency:
 permissions:
   contents: read
 
+# bash with -eo pipefail: a step that pipes through tee must fail when the command before it fails.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   core:
     name: core

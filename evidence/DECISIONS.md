@@ -1,0 +1,23 @@
+# Rehearsal 7 decisions and deviations
+
+Material decisions made during the timed run (T0 2026-10-29T22:49:55Z), with the evidence behind each.
+Owner decisions are DEC-R7-001..012 in Indy-init; nothing here changes a requirement.
+
+| ID | Decision | Why | Effect |
+|---|---|---|---|
+| KD-001 | Kick off without a compiled v4 package; verification authority is the acceptance text of the frozen baseline | The owner authorized kickoff with K3 open ("Merge and authorize kickoff") | No plan-readiness READY can be claimed; acceptance is reported against the baseline obligations |
+| KD-002 | The 23 leftover rehearsal-007 branches stay | Deleting them was refused by the session permission guard | Owner action; main's tree equals DEC-R7-012's starting state |
+| KD-003 | The merge gate is advisory | `main` has no ruleset (UAE-R7-12 not in place) | Merges follow `build-and-test` + `independent-review` PASS + green `causa-ci`; reported as advisory |
+| KD-004 | Indy-init `tools/__pycache__/*.pyc` (from #46/#47) left in place | Indy-init is read-only during the run | Recorded only |
+| KD-005 | causa-data read only through the app's own CI live check | Attaching causa-data to this session was refused by the permission guard | The reader follows the Indy-init candidate contract (CAUSA-DATA-CONTRACT-v1.md); `tools/catalog.fsx` verifies the real catalog in CI with the read-only token |
+| KD-006 | Event registry = the contract's 30-type candidate registry; enumerations as listed there | The normative CONTRACT.md was not readable here (KD-005) | Unknown event types fail closed; the live catalog check shows whether real data conforms |
+| KD-007 | A 10-line C# `[JSExport]` shim (`src/Causa.Host/Host.cs`) | F# does not run the JSExport source generator; verified: an F# `[JSExport]` produced no export in Chromium | All logic stays in F# |
+| KD-008 | Build with `dotnet fsi build.fsx`, not FAKE | fake-cli 6.2.0 requires .NET 6 reference packs; the pinned SDK is 10.0.402 with roll-forward disabled | Same F# tooling, no extra install |
+| KD-009 | PAT-13's comparison with Rehearsals 1-6 is implemented (`tools/acceptance.fsx provenance`) but not run by this agent | The mission forbids this agent from accessing prior rehearsal repositories | BLOCKED for the agent; the independent verifier can run it |
+| KD-010 | Browser-boundary script `web/main.js` relays connectivity, timers and the leave warning | Limen 0.9.1's legacy protocol has no timer or beforeunload effect; the architecture allows interop at verified browser boundaries | No application state in JavaScript; the engine decides everything |
+| KD-011 | Only the Limen modules reachable from the entry points ship | PAT-13 scans what ships; unused capability modules are not part of the artifact | 12 Limen modules ship; no Web Locks reference anywhere in the artifact |
+| KD-012 | The .NET runtime's optional boot-resource cache (`caches.open` in `dotnet.runtime.*.js`) is allowed by the artifact scan | It caches framework assets only; PERSIST-003 permits static-asset caching | PAT-01 verifies at run time that Cache Storage stays empty |
+| KD-013 | PAT-09's leave-warning assertions run in Chromium only | PAT-09's acceptance: "passes in Chromium, with the confirmations and the statement also verified in WebKit"; WebKit does not request the warning for scripted navigation | WebKit still verifies routes, confirmations, the statement and the engine's guard flag |
+| KD-014 | `frame-ancestors` is not set | It cannot be delivered by a `<meta>` policy, and GitHub Pages cannot send headers | Clickjacking protection is limited to what Pages provides |
+| KD-015 | Independent-review owner-class findings (workflow, build props, package manifests, test projects) are covered by the mission's standing authorization (items 2, 6, 10, 15) | The review verdict is PASS with those findings listed; they are inherent to an F# application with tests and CI | Disclosed in each PR and in the final report |
+| KD-016 | Defect found and fixed: CI steps piped through `tee` without `pipefail`, so a failing command could not fail its step | Found when the live catalog step reported success although `tools/catalog.fsx` did not compile (run 40978226573) | Workflow default shell is now `bash` (`-eo pipefail`). Earlier green runs were re-checked from their own output: core F# tests and the live PAT suite (14/14) had passed on their merits; the catalog check had never run |

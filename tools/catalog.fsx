@@ -27,7 +27,7 @@ let read decode r =
     | 200, body -> decode body |> Result.defaultWith failwith
     | status, body -> failwithf "%s answered %d: %s" r.Url status (match field "message" body with Some(JString m) -> m | _ -> "")
 
-let head = read decodeHead (GitHub.head conn (Guid.NewGuid().ToString "N"))
+let head = read decodeHead (Causa.Persistence.GitHub.head conn (Guid.NewGuid().ToString "N"))
 printfn "causa-data main = %s" head
 let fileText path = read decodeText (file conn path head)
 let active = fileText "catalog/active.json"
