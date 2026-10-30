@@ -78,7 +78,7 @@ let creations : Map<string, Creation> =
         "AssumptionRecorded", c "assumption" "assumptionId" (Some "explicitUnverified") noExtra []
         "CausalAssertionRecorded", c "cause" "causeId" (Some "proposed") noExtra [ MemberHypotheses ]
         "CorrectiveActionRecorded",
-        c "correctiveAction" "correctiveActionId" (Some "proposed") (fun e -> [ "awaitingSinceVersion", jint e.AggregateVersion ]) [ Many("targetCauseIds", "cause") ]
+        c "correctiveAction" "correctiveActionId" (Some "proposed") (fun _ -> [ "awaitingSinceVersion", jint 0L ]) [ Many("targetCauseIds", "cause") ]
         "CriterionRecorded", c "criterion" "criterionId" None noExtra [ One("correctiveActionId", "correctiveAction") ]
         "VerificationRecorded",
         c "verification" "verificationId" None (fun e -> [ "recordedAtVersion", jint e.AggregateVersion ]) [ One("criterionId", "criterion"); Many("evidenceIds", "evidence") ]

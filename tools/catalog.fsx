@@ -116,7 +116,10 @@ for c in cases do
                   "firstTransition", transitions |> List.tryHead |> Option.map (fun e -> e.AggregateVersion)
                   "lastTransition", transitions |> List.tryLast |> Option.map (fun e -> e.AggregateVersion)
                   "approved", toState "approved"; "inProgress", toState "inProgress"; "implemented", toState "implemented"
-                  "awaiting", toState "awaitingVerificationOfEffect"; "criterion", criterion ]
+                  "awaiting", toState "awaitingVerificationOfEffect"; "criterion", criterion
+                  "zero", Some 0L; "minusOne", Some -1L; "final", events |> List.tryLast |> Option.map (fun e -> e.AggregateVersion)
+                  "lifecycleAwaitingVerification", events |> List.tryFind (fun e -> e.EventType = "LifecycleChanged" && field "to" e.Payload = Some(JString "awaitingVerification")) |> Option.map (fun e -> e.AggregateVersion)
+                  "lastLifecycle", events |> List.filter (fun e -> e.EventType = "LifecycleChanged") |> List.tryLast |> Option.map (fun e -> e.AggregateVersion) ]
             let state = match field "state" ca with Some(JString v) -> v | _ -> "?"
             printfn "AWAIT %s[%d] state=%s %s" (caseText "caseKey" c) i state
                 (String.Join(" ", candidates |> List.map (fun (n, v) -> sprintf "%s=%b" n (v.IsSome && v = expected))))
