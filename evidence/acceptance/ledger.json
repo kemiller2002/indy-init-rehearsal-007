@@ -1,0 +1,165 @@
+{
+ "schema": "causa.pat-ledger/1",
+ "candidate": "a8e2040fb8b6751e82af8d89cc1198ca98e482fa",
+ "recordedBy": "implementing agent (not an acceptance verdict)",
+ "catalog": {
+  "check": "EXT-DATA-013 live catalog",
+  "result": "PASS",
+  "detail": "4 of 4 cases verified by contract validation and replay to their catalog state digests",
+  "runs": [
+   "40986789089 (PR #23 head 8b7296a)",
+   "40987940706 (main a8e2040)"
+  ]
+ },
+ "results": [
+  {
+   "pat": "PAT-01",
+   "requirement": "PERSIST-040",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "Chromium and WebKit against the fake; browser stores empty; with and without navigator.locks"
+  },
+  {
+   "pat": "PAT-02",
+   "requirement": "PERSIST-041",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "fake (core), live (live-provider 14/14 on 8b7296a; 13/14 on a8e2040 with the error in PAT-08 only), browser"
+  },
+  {
+   "pat": "PAT-03",
+   "requirement": "PERSIST-042",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "fake: every class; live: stale head and network"
+  },
+  {
+   "pat": "PAT-04",
+   "requirement": "PERSIST-043",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "fake, live, browser"
+  },
+  {
+   "pat": "PAT-05",
+   "requirement": "PERSIST-044",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "fake, live, browser"
+  },
+  {
+   "pat": "PAT-06",
+   "requirement": "PERSIST-045",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "fake: all branches incl. lagging view; live: applied, not applied, head moved, failing reads"
+  },
+  {
+   "pat": "PAT-07",
+   "requirement": "PERSIST-046",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "Chromium and WebKit"
+  },
+  {
+   "pat": "PAT-08",
+   "requirement": "PERSIST-047",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)"
+   ],
+   "note": "fake and live 4/4 conditions on 8b7296a; on a8e2040 the branch-advancing condition ERRORED in the test harness (other-writer refused, likely secondary rate limit while deployed-acceptance wrote concurrently); hardened in PR #24 (KD-020), not re-run yet"
+  },
+  {
+   "pat": "PAT-09",
+   "requirement": "PERSIST-048",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "leave warning in Chromium; confirmations and statement in Chromium and WebKit (KD-013)"
+  },
+  {
+   "pat": "PAT-10",
+   "requirement": "PERSIST-049",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "fake and live"
+  },
+  {
+   "pat": "PAT-11",
+   "requirement": "PERSIST-050",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "PAT-01/02/04/05 repeated with navigator.locks removed; no Web Locks use observed"
+  },
+  {
+   "pat": "PAT-12",
+   "requirement": "PERSIST-051",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "exhaustive state x input test; compile-time negative check FS1093"
+  },
+  {
+   "pat": "PAT-13",
+   "requirement": "PERSIST-052",
+   "result": "PARTIAL",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "artifact scan PASS; provenance comparison with Rehearsals 1-6 BLOCKED for this agent (KD-009)"
+  },
+  {
+   "pat": "PAT-14",
+   "requirement": "PERSIST-053",
+   "result": "PASS",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "validator on the pinned baseline (preflight) and copy tests on the candidate"
+  },
+  {
+   "pat": "PAT-15",
+   "requirement": "PERSIST-054",
+   "result": "PARTIAL",
+   "runs": [
+    "40986789089 (PR #23 head 8b7296a)",
+    "40987940706 (main a8e2040)"
+   ],
+   "note": "Chromium and WebKit against the fake: PASS; on the deployed exact SHA against live GitHub: run in progress at the time of writing"
+  }
+ ]
+}

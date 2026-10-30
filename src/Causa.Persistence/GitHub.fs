@@ -100,9 +100,10 @@ type CommitAnswer =
 
 let private message body = match field "message" body with Some(JString m) -> m | _ -> ""
 
+/// GitHub's primary and secondary rate limits, which can arrive as a 403 or as a FORBIDDEN GraphQL error.
 let private isRateLimitText (m: string) =
     let m = m.ToLowerInvariant()
-    m.Contains "rate limit"
+    m.Contains "rate limit" || m.Contains "too quickly" || m.Contains "abuse detection"
 
 let private graphQLErrors body =
     match field "errors" body with
@@ -131,7 +132,7 @@ let classifyCommit (reply: Reply) : CommitAnswer =
         match oid, graphQLErrors body with
         | Some(JString oid), [] when isOid oid -> Committed oid
         | _, errors when errors |> List.exists (fun (t, m) -> t = "STALE_DATA" || m.StartsWith "Expected branch to point to") -> StaleHead
-        | _, errors when errors |> List.exists (fst >> (=) "RATE_LIMITED") -> RateLimit
+        | _, errors when errors |> List.exists (fun (t, m) -> t = "RATE_LIMITED" || isRateLimitText m) -> RateLimit
         | _, errors when errors |> List.exists (fun (t, _) -> t = "FORBIDDEN" || t = "INSUFFICIENT_SCOPES") -> PermissionRefused
         | _, ((_, m) :: _ as errors) when errors |> List.forall (fun (t, _) -> t <> "") -> ValidationRefused m
         | _ -> OutcomeUnknown

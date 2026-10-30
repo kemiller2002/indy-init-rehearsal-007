@@ -1,0 +1,1310 @@
+{
+ "schema": "causa.traceability/1",
+ "baseline": "BL-CAUSA-INDY-INIT-8445ca11986f",
+ "scope": "every P0 requirement (161 of 517); non-P0 requirements are not assessed here",
+ "statusMeaning": {
+  "VERIFIED": "an automated check passed on this candidate line in CI",
+  "PARTIAL": "some obligations verified, others not",
+  "NOT_IMPLEMENTED": "not built",
+  "NOT_RUN": "implemented or applicable but not executed",
+  "NOT_ASSESSED": "process or other requirement not assessed by the implementing agent",
+  "BLOCKED": "cannot be run by this agent"
+ },
+ "counts": {
+  "PARTIAL": 17,
+  "VERIFIED": 73,
+  "NOT_IMPLEMENTED": 32,
+  "NOT_RUN": 9,
+  "NOT_ASSESSED": 30
+ },
+ "requirements": [
+  {
+   "id": "UI-001",
+   "title": "Investigation dashboard",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "dashboard cards with title, lifecycle, last activity, counts, unresolved contradictions; workflow e2e",
+   "note": ""
+  },
+  {
+   "id": "UI-003",
+   "title": "Investigation timeline",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "timeline of every event, unsaved marked",
+   "note": ""
+  },
+  {
+   "id": "UI-004",
+   "title": "Contextual command interface",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "command forms decided by the engine; legal transitions only (workflow e2e)",
+   "note": ""
+  },
+  {
+   "id": "UI-005",
+   "title": "Evidence inspector",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "inspector shows evidence fields and connected records",
+   "note": ""
+  },
+  {
+   "id": "UI-006",
+   "title": "Save, sync and conflict status",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-15",
+   "note": ""
+  },
+  {
+   "id": "UI-010",
+   "title": "Empty, error and recovery states",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "error states for load refusal, offline, access denied, save failures",
+   "note": ""
+  },
+  {
+   "id": "UI-011",
+   "title": "Keyboard, accessibility and iPad usability",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "axe WCAG 2.1 AA scans light and dark, keyboard-only flow, reduced motion",
+   "note": ""
+  },
+  {
+   "id": "UI-013",
+   "title": "Cross-view consistency",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "one projection per investigation version; deep link to an unloaded investigation shows a recovery state",
+   "note": ""
+  },
+  {
+   "id": "UI-014",
+   "title": "Visual identity and navigation",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-016",
+   "title": "Causa semantic color system",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-015",
+   "title": "Acceptance and traceability",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-017",
+   "title": "Investigation-facing copy is domain-focused",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-018",
+   "title": "Dedicated Administration page",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "Administration page (provider, repository, head, contract, versions, build, data checks)",
+   "note": ""
+  },
+  {
+   "id": "UI-019",
+   "title": "Dedicated Settings page",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "Settings page (connection, storage statement)",
+   "note": ""
+  },
+  {
+   "id": "UI-020",
+   "title": "Navigation and information architecture",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-021",
+   "title": "Content and route verification",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-022",
+   "title": "Minimal application chrome and investigation cards",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-023",
+   "title": "Separate technical integrity from investigative verification",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-024",
+   "title": "User-oriented terminology and presentation-language contract",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-025",
+   "title": "Investigation overview as the primary landing view",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "investigation page opens on overview of findings, evidence, questions",
+   "note": ""
+  },
+  {
+   "id": "UI-026",
+   "title": "Prominent causal analysis workspace",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-029",
+   "title": "Two-level navigation and responsive application shell",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-030",
+   "title": "Presentation semantics verification and adversarial tests",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-031",
+   "title": "Preserve system detail without exposing it in the workflow",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-032",
+   "title": "Next Steps",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "next steps derived from records (domain tests)",
+   "note": ""
+  },
+  {
+   "id": "UI-033",
+   "title": "Connected investigation records",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "inspector traverses connected records both ways (workflow e2e)",
+   "note": ""
+  },
+  {
+   "id": "UI-034",
+   "title": "Shared Forma inspector",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-038",
+   "title": "Decision provenance",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-039",
+   "title": "Reusable implementation contracts",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "UI-040",
+   "title": "End-to-end acceptance",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "not built in this run (scope/time)",
+   "note": ""
+  },
+  {
+   "id": "PF-001",
+   "title": "Provider-neutral boundary",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "one provider boundary (Causa.Persistence.GitHub); fake and GitHub share parsing and the F# engine",
+   "note": ""
+  },
+  {
+   "id": "PF-002",
+   "title": "One domain authority",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "one provider boundary (Causa.Persistence.GitHub); fake and GitHub share parsing and the F# engine",
+   "note": ""
+  },
+  {
+   "id": "PF-003",
+   "title": "Explicit provider selection",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "explicit test provider only via advanced API address on localhost; conspicuous banner",
+   "note": ""
+  },
+  {
+   "id": "PF-004",
+   "title": "Contract fidelity",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "fixtures follow the same contract path (FileSet.verify)",
+   "note": ""
+  },
+  {
+   "id": "PF-005",
+   "title": "Provider isolation",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "one provider boundary (Causa.Persistence.GitHub); fake and GitHub share parsing and the F# engine",
+   "note": ""
+  },
+  {
+   "id": "PF-006",
+   "title": "Populated investigation",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "synthetic edge-case fixtures exist in domain tests; no dedicated populated fixture catalog",
+   "note": ""
+  },
+  {
+   "id": "PF-007",
+   "title": "Edge-case fixtures",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "synthetic edge-case fixtures exist in domain tests; no dedicated populated fixture catalog",
+   "note": ""
+  },
+  {
+   "id": "PF-008",
+   "title": "Provider-failure fixtures",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "provider failures covered by PAT-03/06/08; stale-response ordering covered by single-flight design, not a dedicated test",
+   "note": ""
+  },
+  {
+   "id": "PF-009",
+   "title": "Concurrency fixtures",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "provider failures covered by PAT-03/06/08; stale-response ordering covered by single-flight design, not a dedicated test",
+   "note": ""
+  },
+  {
+   "id": "PF-011",
+   "title": "Four independent verification levels",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "domain, UI, provider and live levels run as separate jobs/commands (README)",
+   "note": ""
+  },
+  {
+   "id": "PF-012",
+   "title": "Fast local feedback",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "domain, UI, provider and live levels run as separate jobs/commands (README)",
+   "note": ""
+  },
+  {
+   "id": "PF-013",
+   "title": "Real-provider conformance",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "no recorded real-response corpus; live tests run against real GitHub instead",
+   "note": ""
+  },
+  {
+   "id": "PF-014",
+   "title": "Live integration acceptance",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "live catalog 4/4 with CAUSA_GITHUB_TOKEN; writes with CAUSA_WRITE_TOKEN only; missing secret = BLOCKED",
+   "note": ""
+  },
+  {
+   "id": "PF-015",
+   "title": "Credentials and security",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "live catalog 4/4 with CAUSA_GITHUB_TOKEN; writes with CAUSA_WRITE_TOKEN only; missing secret = BLOCKED",
+   "note": ""
+  },
+  {
+   "id": "PF-016",
+   "title": "Visual verification",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "contrast and screenshots for save states; full navy/teal/amber/coral/ivory palette exercise not tested",
+   "note": ""
+  },
+  {
+   "id": "PF-017",
+   "title": "Failure isolation",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "domain, UI, provider and live levels run as separate jobs/commands (README)",
+   "note": ""
+  },
+  {
+   "id": "PF-018",
+   "title": "Traceability",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "this traceability record",
+   "note": ""
+  },
+  {
+   "id": "PF-019",
+   "title": "Local-first workflow",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "domain, UI, provider and live levels run as separate jobs/commands (README)",
+   "note": ""
+  },
+  {
+   "id": "PF-020",
+   "title": "Deployment gate",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "green domain, UI, provider and live checks; deployed exact-SHA browser verification pending deploy",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-001",
+   "title": "EXT-DATA-001",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-13 artifact contains no catalog records; catalog data never stored in the repository (KD-017)",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-002",
+   "title": "EXT-DATA-002",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "browser test EXT-DATA-002 (fresh launch disconnected and empty)",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-003",
+   "title": "EXT-DATA-003",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "connect form requires owner/repo/branch/workspace/token; security spec: token never in page, URL, body or storage; memory only",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-004",
+   "title": "EXT-DATA-004",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "connect form requires owner/repo/branch/workspace/token; security spec: token never in page, URL, body or storage; memory only",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-005",
+   "title": "EXT-DATA-005",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "repository permission read; strict contract validation + exact replay; forged history refused (security spec, domain negatives)",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-006",
+   "title": "EXT-DATA-006",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "connect and read send only GET requests; creation is an explicit user action",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-007",
+   "title": "EXT-DATA-007",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "header shows disconnected, connecting, connected-empty, loading, incompatible, access denied, offline, conflict; not every state has an automated test",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-008",
+   "title": "EXT-DATA-008",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "new investigation command-created, verified by round trip (domain tests, workflow e2e)",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-009",
+   "title": "EXT-DATA-009",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "clean install with zero fixtures; authorized live read (catalog), denial (EXT-DATA-009 test), malformed refusal, create/read/write/reload (live PATs); deployed exact SHA pending",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-010",
+   "title": "EXT-DATA-010",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "live startup/authorization/read/write/recovery measured by the live job; timings not reported separately",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-011",
+   "title": "EXT-DATA-011",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "reader/writer of the frozen v1.0.0 contract; incompatible data fails closed",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-012",
+   "title": "EXT-DATA-012",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "data repository is chosen at connect, separate from the application repository; content treated as untrusted",
+   "note": ""
+  },
+  {
+   "id": "EXT-DATA-013",
+   "title": "EXT-DATA-013",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "live catalog check: 4 of 4 cases verified by full validation and replay to the catalog state digests (live GitHub (causa-write-test) read token)",
+   "note": ""
+  },
+  {
+   "id": "WDL-001",
+   "title": "Existing capability discovery",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-002",
+   "title": "No duplicate engine",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-003",
+   "title": "Typed domain-to-graph projection",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-004",
+   "title": "Separation of concerns",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-005",
+   "title": "Data-driven layout",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-006",
+   "title": "Visual correctness",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-007",
+   "title": "Responsive and accessible rendering",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-008",
+   "title": "Forma design-system alignment",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-009",
+   "title": "Stable and deterministic output",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-010",
+   "title": "Interaction contract",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-011",
+   "title": "Fixture-backed development",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-012",
+   "title": "Layered tests",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-014",
+   "title": "Integration gate",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "WDL-015",
+   "title": "Requirements preservation",
+   "priority": "P0",
+   "status": "NOT_IMPLEMENTED",
+   "evidence": "workflow diagrams not built in this run",
+   "note": ""
+  },
+  {
+   "id": "VER-001",
+   "title": "Latest compatible verified release",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-002",
+   "title": "Verify release freshness",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-003",
+   "title": "Compatibility over blind upgrades",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-004",
+   "title": "Reproducible lock",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-005",
+   "title": "No unreviewed prereleases",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-006",
+   "title": "Cross-system contract validation",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-007",
+   "title": "Version observability",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-008",
+   "title": "CI enforcement",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "VER-010",
+   "title": "Requirements traceability",
+   "priority": "P0",
+   "status": "NOT_RUN",
+   "evidence": "release comparison / version gates not run by this agent",
+   "note": ""
+  },
+  {
+   "id": "AR-001",
+   "title": "Source-of-truth baseline",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-002",
+   "title": "Lossless requirement derivation",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-003",
+   "title": "Authenticated decisions",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-004",
+   "title": "Mandatory CI preservation gate",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-005",
+   "title": "Capability registry and reuse",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-006",
+   "title": "Typed state and transition contracts",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-007",
+   "title": "Evidence-backed acceptance",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-008",
+   "title": "Adversarial independent review",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-009",
+   "title": "Negative-control testing",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-010",
+   "title": "Layered provider verification",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-011",
+   "title": "Reproducibility and provenance",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-012",
+   "title": "Controlled work scope",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-013",
+   "title": "Risk-based verification",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-014",
+   "title": "Secure capability isolation",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-015",
+   "title": "Long-running agent continuity",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-017",
+   "title": "Ownership and intake",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-018",
+   "title": "Fail-closed acceptance",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-019",
+   "title": "Computed verdict, not agent assertion",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-020",
+   "title": "Selective enforcement",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-021",
+   "title": "Continuous implementation agent",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-022",
+   "title": "Testing discipline",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-023",
+   "title": "Release-set integrity",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-024",
+   "title": "Explicit kickoff decisions",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-027",
+   "title": "Independent derivation check",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-028",
+   "title": "Isolated local verification",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-029",
+   "title": "Start smoke on every primary route",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-030",
+   "title": "No test controls in production",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-031",
+   "title": "Scope decisions for generic screen contracts before kickoff",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-034",
+   "title": "Early adversarial review and tag audit",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "AR-035",
+   "title": "Multi-writer persistence semantics",
+   "priority": "P0",
+   "status": "NOT_ASSESSED",
+   "evidence": "agent-reliability process requirement; for the independent verifier",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-001",
+   "title": "Authority and precedence",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "tools/validate-r7-persistence-requirements.fsx PASS 10/10 + self-test on the pinned baseline (preflight)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-002",
+   "title": "Each browser tab holds its own investigation state",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-01 browser Chromium + WebKit against the fake, core job; browser stores inspected empty",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-003",
+   "title": "No shared browser storage for investigations",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-01 browser Chromium + WebKit against the fake, core job; browser stores inspected empty",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-004",
+   "title": "No cross-tab locking or coordination",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-11 (PAT-01/02/04/05 with navigator.locks removed) browser Chromium + WebKit against the fake, core job; PAT-13 artifact scan: no Web Locks reference",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-005",
+   "title": "GitHub is the authoritative durable store",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-10 stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job; reader requires exact state reproduction",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-006",
+   "title": "One atomic commit per save, with an expected head",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-007",
+   "title": "A save is confirmed only after GitHub confirms it",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-008",
+   "title": "Detect a stale head",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-03 stateful GitHub fake, core job (all classes) and live GitHub (causa-write-test), live-provider job (stale head, network); rate limit/permission/validation fake-only",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-009",
+   "title": "Rebase automatically over unrelated changes",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-04 and PAT-08 (branch advancing) stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-010",
+   "title": "Limit automatic rebases",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-04 and PAT-08 (branch advancing) stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-011",
+   "title": "Preserve unsaved changes when the same investigation changed remotely",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-05 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser (review, reapply with refused commands, discard with confirmation)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-012",
+   "title": "Resolve a genuine conflict only by explicit user choice",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-05 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser (review, reapply with refused commands, discard with confirmation)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-013",
+   "title": "Never silently overwrite another commit",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-014",
+   "title": "Unique write markers",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-015",
+   "title": "Reconcile an unknown commit outcome before retrying",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-06 stateful GitHub fake, core job (all branches) and live GitHub (causa-write-test), live-provider job (applied, not applied, head moved, failing reads); marker mismatch and rewritten history fake-only; lagging-view regression (KD-018)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-016",
+   "title": "Bounded retries and no tight loops",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-08 (four conditions, 60 s virtual clock) stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-017",
+   "title": "An already loaded investigation stays visible offline",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-07 browser Chromium + WebKit against the fake, core job (offline save sends nothing; rebase-path network failure never Conflict, no Discard)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-018",
+   "title": "Editing while disconnected stays in session memory",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-07 browser Chromium + WebKit against the fake, core job (offline save sends nothing; rebase-path network failure never Conflict, no Discard)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-019",
+   "title": "Warn before leaving with unsaved changes",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-09 Chromium leave warning; confirmations and statement in Chromium and WebKit (KD-013)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-020",
+   "title": "Unsaved work does not survive browser termination",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-09 Chromium leave warning; confirmations and statement in Chromium and WebKit (KD-013)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-021",
+   "title": "Reopen from GitHub",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-10 stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job; reader requires exact state reproduction",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-022",
+   "title": "One save state per investigation",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and in the browser",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-023",
+   "title": "Truthful save state is structural",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-12 exhaustive state x input model test + compile-time negative check (FS1093)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-024",
+   "title": "Failure causes are reported truthfully",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-07 browser Chromium + WebKit against the fake, core job (offline save sends nothing; rebase-path network failure never Conflict, no Discard)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-025",
+   "title": "Testable provider boundary",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02..PAT-08, PAT-10 run against the stateful fake and the live repository; fake-only cases named",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-026",
+   "title": "Built from these requirements",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "Built during the run from requirements; PAT-13 provenance comparison implemented but BLOCKED for this agent (KD-009)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-030",
+   "title": "Forma save-state indicator",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-15 browser Chromium + WebKit against the fake, core job (all seven states: Forma components, words, actions, 4.5:1 contrast, live regions, reflow); PAT-14 copy tests; deployed-SHA run pending deploy",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-031",
+   "title": "Meaning of each save state",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-15 browser Chromium + WebKit against the fake, core job (all seven states: Forma components, words, actions, 4.5:1 contrast, live regions, reflow); PAT-14 copy tests; deployed-SHA run pending deploy",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-032",
+   "title": "No false persistence claims",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-15 browser Chromium + WebKit against the fake, core job (all seven states: Forma components, words, actions, 4.5:1 contrast, live regions, reflow); PAT-14 copy tests; deployed-SHA run pending deploy",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-033",
+   "title": "Workspace connection and unsaved summary",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-15 browser Chromium + WebKit against the fake, core job (all seven states: Forma components, words, actions, 4.5:1 contrast, live regions, reflow); PAT-14 copy tests; deployed-SHA run pending deploy",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-040",
+   "title": "PAT-01 independent browser-tab state",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-01 browser Chromium + WebKit against the fake, core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-041",
+   "title": "PAT-02 concurrent GitHub commits",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02/04/05 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and browser Chromium + WebKit against the fake, core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-042",
+   "title": "PAT-03 stale head rejection",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-03/06/08/10 stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-043",
+   "title": "PAT-04 automatic rebase of unrelated changes",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02/04/05 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and browser Chromium + WebKit against the fake, core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-044",
+   "title": "PAT-05 same-investigation conflict preservation",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-02/04/05 stateful GitHub fake, core job, live GitHub (causa-write-test), live-provider job, and browser Chromium + WebKit against the fake, core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-045",
+   "title": "PAT-06 unknown commit reconciliation",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-03/06/08/10 stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-046",
+   "title": "PAT-07 offline save failure",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-07 browser Chromium + WebKit against the fake, core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-047",
+   "title": "PAT-08 no uncontrolled retry loops",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-03/06/08/10 stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-048",
+   "title": "PAT-09 navigation with unsaved changes",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-09 Chromium; confirmations and statement Chromium and WebKit",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-049",
+   "title": "PAT-10 successful reopening from GitHub",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-03/06/08/10 stateful GitHub fake, core job and live GitHub (causa-write-test), live-provider job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-050",
+   "title": "PAT-11 operation without Web Locks",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-11 browser Chromium + WebKit against the fake, core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-051",
+   "title": "PAT-12 save-state machine model test",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "PAT-12 core job",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-052",
+   "title": "PAT-13 production artifact and provenance scan",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "PAT-13 artifact scan PASS (core job); provenance comparison BLOCKED for this agent (KD-009)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-053",
+   "title": "PAT-14 requirements and copy consistency",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "validator on pinned baseline (preflight) + PAT-14 copy tests (core job)",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-054",
+   "title": "PAT-15 save-state indicator acceptance",
+   "priority": "P0",
+   "status": "PARTIAL",
+   "evidence": "PAT-15 browser Chromium + WebKit against the fake, core job; the deployed exact-SHA run depends on the Pages deploy",
+   "note": ""
+  },
+  {
+   "id": "PERSIST-055",
+   "title": "Execution of the persistence acceptance tests",
+   "priority": "P0",
+   "status": "VERIFIED",
+   "evidence": "evidence/acceptance/ledger.json records each PAT under its own identity",
+   "note": ""
+  }
+ ]
+}
