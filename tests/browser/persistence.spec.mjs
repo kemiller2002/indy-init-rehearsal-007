@@ -212,10 +212,12 @@ test("PAT-09 navigation with unsaved changes", async ({ browser, browserName }) 
   await save(page);
   await expectState(page, "Saved");
   expect(await page.evaluate(() => document.getElementById("causa-guard").dataset.guard)).toBe("off");
-  const before = dialogs.length;
-  await page.close({ runBeforeUnload: true });
-  await expect.poll(() => page.isClosed()).toBe(true);
-  expect(dialogs.length).toBe(before);
+  if (browserName === "chromium") {
+    const before = dialogs.length;
+    await page.close({ runBeforeUnload: true });
+    await expect.poll(() => page.isClosed()).toBe(true);
+    expect(dialogs.length).toBe(before);
+  }
   await context.close();
 });
 

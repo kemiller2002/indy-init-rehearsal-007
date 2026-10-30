@@ -161,6 +161,28 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
             legalLifecycle env.Context i
             |> List.map (fun t -> [ "key", VText t; "label", VText((humanize (t.Replace("Investigation", ""))).Trim()) ])
         | _ -> []
+    let selectedLinks =
+        match inv, selectedEntity with
+        | Some i, Some e ->
+            let referenced =
+                e.Fields
+                |> List.collect (fun (_, v) ->
+                    match v with
+                    | JString s -> [ s ]
+                    | JArray xs -> xs |> List.collect (function JString s -> [ s ] | JObject fs -> fs |> List.choose (snd >> function JString s -> Some s | _ -> None) | _ -> [])
+                    | _ -> [])
+            let referencing =
+                i.Entities |> Map.toList |> List.map snd
+                |> List.filter (fun o -> o.Id <> e.Id && o.Fields |> List.exists (fun (_, v) -> match v with JString s -> s = e.Id | JArray xs -> xs |> List.exists (function JString s -> s = e.Id | JObject fs -> fs |> List.exists (snd >> (=) (JString e.Id)) | _ -> false) | _ -> false))
+                // A relationship is an edge: traverse it to the record at its other end.
+                |> List.collect (fun o ->
+                    if o.Kind = "relationship" then o.Fields |> List.choose (snd >> function JString s when s <> e.Id -> Some s | _ -> None)
+                    else [ o.Id ])
+            (referenced @ referencing)
+            |> List.distinct
+            |> List.choose i.Entities.TryFind
+            |> List.map (fun o -> [ "id", VText o.Id; "kind", VText(humanize o.Kind); "label", VText(entityLabel o) ])
+        | _ -> []
     let conflict = session |> Option.bind (fun s -> s.Conflict)
     let theirs = conflict |> Option.bind (fun c -> c.Theirs)
     let summary (i: Investigation option) =
@@ -309,6 +331,19 @@ let render (env: Env) (m: Model) : (string * ViewValue) list =
         t "sel.state" (selectedEntity |> Option.bind (fun e -> e.State) |> Option.map humanize |> Option.defaultValue "No lifecycle")
         t "sel.recorded" (selectedEntity |> Option.map (fun e -> sprintf "Recorded in version %d" e.RecordedVersion) |> Option.defaultValue "")
         b "sel.hasTransitions" (not transitions.IsEmpty)
+        "sel.fields",
+        VList(
+            selectedEntity
+            |> Option.map (fun e ->
+                e.Fields
+                |> List.choose (fun (k, v) ->
+                    match v with
+                    | JString s when not (Causa.Domain.Prelude.Text.isUuid s) -> Some [ "key", VText k; "name", VText(humanize k); "value", VText s ]
+                    | JNull -> Some [ "key", VText k; "name", VText(humanize k); "value", VText "Not recorded" ]
+                    | _ -> None))
+            |> Option.defaultValue [])
+        "sel.links", VList selectedLinks
+        b "sel.noLinks" selectedLinks.IsEmpty
     ]
     @ (draftKeys |> List.map (fun k -> t ("d." + k) (draft m k)))
     @ [ // Conflict review (PERSIST-012)

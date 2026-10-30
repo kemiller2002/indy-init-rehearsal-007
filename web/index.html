@@ -277,6 +277,7 @@
                     </template>
                   </ul>
                   <template data-if="inv.editable">
+                    <div>
                     <form data-event="ev.add" class="causa-form">
                       <label for="ev-c">New evidence</label>
                       <textarea id="ev-c" rows="2" data-event="draft:ev.content" data-on="input" data-bind-value="d.ev.content"></textarea>
@@ -318,6 +319,7 @@
                       <input id="rel-r" data-event="draft:rel.rationale" data-on="input" data-bind-value="d.rel.rationale">
                       <button type="submit">Relate</button>
                     </form>
+                    </div>
                   </template>
                   <ul class="causa-list causa-meta">
                     <template data-each="relationships" data-key="id"><li><span data-text="detail"></span>: <span data-text="label"></span></li></template>
@@ -410,11 +412,21 @@
                     <p class="causa-inspector__label" data-text="sel.label"></p>
                     <p>State: <strong data-text="sel.state"></strong></p>
                     <p class="causa-meta" data-text="sel.recorded"></p>
+                    <dl class="causa-fields">
+                      <template data-each="sel.fields" data-key="key"><div><dt data-text="name"></dt><dd data-text="value"></dd></div></template>
+                    </dl>
+                    <h3>Connected records</h3>
+                    <template data-if="sel.noLinks"><p class="causa-help">No connected records.</p></template>
+                    <ul class="causa-list">
+                      <template data-each="sel.links" data-key="id">
+                        <li><button type="button" class="causa-entity" data-event="select"><span class="causa-meta" data-text="kind"></span>: <span data-text="label"></span></button></li>
+                      </template>
+                    </ul>
                     <template data-if="sel.hasTransitions">
                       <div class="causa-form">
                         <label for="tr-reason">Reason for the change</label>
                         <input id="tr-reason" data-event="draft:transition.reason" data-on="input" data-bind-value="d.transition.reason">
-                        <div class="causa-actions">
+                        <div class="causa-actions" id="causa-transitions" role="group" aria-label="Allowed changes">
                           <template data-each="transitions" data-key="key"><button type="button" data-event="transition" data-text="label"></button></template>
                         </div>
                       </div>
