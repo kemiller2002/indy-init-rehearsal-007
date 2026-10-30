@@ -179,6 +179,7 @@ let onReply (s: Save) (reply: Reply) (now: string) (nonce: string) : Next =
         | other -> readFailure s other
     | CheckingOwnWrites newHead ->
         match classifyRead decodeCompare reply with
+        | Read cmp when cmp.Status <> "ahead" && cmp.Status <> "identical" -> Finish(Stopped, [ Failed HistoryRewritten ])
         | Read cmp ->
             match ownCommit s cmp.Commits with
             | Some sha ->

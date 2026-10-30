@@ -136,7 +136,7 @@ let manifestFields =
 
 let private checkSnapshot (inv: Investigation) (snapshot: Json) =
     result {
-        do! onlyKeys [ "formatVersion"; "investigationId"; "aggregateVersion"; "projectionVersion"; "semanticVersion"; "generatedAt"; "state" ] snapshot
+        do! exactKeys [ "formatVersion"; "investigationId"; "aggregateVersion"; "projectionVersion"; "semanticVersion"; "generatedAt"; "state" ] snapshot
         let! id = str "investigationId" snapshot
         do! Result.require (id = inv.Id) "snapshot belongs to another investigation"
         let! v = int64Field "aggregateVersion" snapshot
@@ -146,14 +146,17 @@ let private checkSnapshot (inv: Investigation) (snapshot: Json) =
         do! Result.require (lifecycle = inv.Lifecycle) "snapshot lifecycle does not match the replayed history"
         let! title = str "title" state
         do! Result.require (title = inv.Title) "snapshot title does not match the replayed history"
-        return ()
+        // The whole state must be what replaying the history produces (causa-data v1.0.0 §11).
+        match diffPaths "state" state (stateJson inv) with
+        | [] -> return ()
+        | first :: rest -> return! Error(sprintf "state does not match the replayed history (%s%s)" first (if rest.IsEmpty then "" else sprintf " and %d more" rest.Length))
     }
 
 /// Verifies a file set read from one commit, as a reader would (causa-data v1.0.0 §11).
 let verify (expectedId: string) (files: Files) : Result<Verified, string> =
     result {
         let! manifest = parse files.Manifest |> Result.mapError ((+) "manifest.json: ")
-        do! onlyKeys manifestFields manifest |> Result.mapError ((+) "manifest.json: ")
+        do! exactKeys manifestFields manifest |> Result.mapError ((+) "manifest.json: ")
         let! fv = str "formatVersion" manifest
         do! Result.require (fv = "1.0.0") "manifest.json: unsupported formatVersion (incompatible data)"
         let! mid = str "investigationId" manifest

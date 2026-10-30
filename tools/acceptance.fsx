@@ -47,12 +47,23 @@ let artifact (site: string) =
     | [] -> verdict "PAT-13 artifact" "PASS" ([ sprintf "%d shipped text files scanned" (textFiles site).Length; sprintf "engine effect kinds: %s" (String.Join(",", kinds)) ] @ wasm)
     | problems -> verdict "PAT-13 artifact" "FAIL" problems
 
-let negative () =
-    let p = Process.Start(ProcessStartInfo("dotnet", "build tests/negative -c Release", RedirectStandardOutput = true, UseShellExecute = false))
+/// Each project must fail to compile, and fail for its own reason: the named construction is not accessible.
+let negativeProjects =
+    [ "tests/negative", "FS1093", "constructing Saved's Confirmation record outside its module"
+      "tests/negative-readback", "ofReadBack", "confirming bytes by comparing them with themselves outside persistence"
+      "tests/negative-verifiedread", "ofVerifiedRead", "confirming bytes never read from GitHub outside persistence" ]
+
+let refusesToCompile (project: string, needle: string, _: string) =
+    let p = Process.Start(ProcessStartInfo("dotnet", sprintf "build %s -c Release" project, RedirectStandardOutput = true, UseShellExecute = false))
     let output = p.StandardOutput.ReadToEnd()
     p.WaitForExit()
-    if p.ExitCode <> 0 && output.Contains "FS1093" then verdict "PAT-12 compile-time negative" "PASS" [ "constructing Confirmation outside its module fails with FS1093" ]
-    else verdict "PAT-12 compile-time negative" "FAIL" [ "the negative project compiled, or failed for another reason" ]
+    let errors = output.Split('\n') |> Array.filter (fun l -> l.Contains " error FS" && l.Contains(project.Replace("tests/", ""))) |> Array.distinct
+    p.ExitCode <> 0 && errors.Length > 0 && errors |> Array.forall (fun l -> l.Contains needle && (needle.StartsWith "FS" || l.Contains "FS1094"))
+
+let negative () =
+    match negativeProjects |> List.filter (refusesToCompile >> not) with
+    | [] -> verdict "PAT-12 compile-time negative" "PASS" (negativeProjects |> List.map (fun (_, _, what) -> what + " fails to compile"))
+    | compiled -> verdict "PAT-12 compile-time negative" "FAIL" (compiled |> List.map (fun (p, _, what) -> sprintf "%s: %s compiled, or failed for another reason" p what))
 
 let normalize (f: string) = File.ReadAllText(f).Replace("\r\n", "\n")
 

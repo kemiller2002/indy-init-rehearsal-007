@@ -33,6 +33,8 @@ type Loading =
 type ConflictInfo =
     { Head: string
       Theirs: Verified option
+      /// GitHub's confirmation of the version in Theirs, from the verified load that read it.
+      TheirsConfirmation: Confirmation option
       TheirsError: string option
       Reviewing: bool
       ConfirmDiscard: bool }
@@ -55,9 +57,9 @@ type Request =
     | PRepository
     | PHead
     | PTree of head: string
-    | PLoad of id: string * commit: string * got: Map<string, string>
+    | PLoad of id: string * load: Load.Load
     | PRefreshHead of id: string
-    | PTheirs of id: string * commit: string * got: Map<string, string>
+    | PTheirs of id: string * load: Load.Load
     | PSave of id: string
 
 type Model =
@@ -155,17 +157,14 @@ let private applyInputs (m: Model) (id: string) (inputs: SaveInput list) =
         let m' = { m with Sessions = m.Sessions.Add(id, s) }
         if SaveState.name s.Save <> SaveState.name s0.Save then announce m' s else m'
 
-let private fileRequest (m: Model) (pending: Request) (id: string) (commit: string) (got: Map<string, string>) =
-    let conn = m.Connection.Value
-    let name = SaveProcess.fileNames.[got.Count]
-    send m pending (file conn (investigationPrefix conn.Workspace id + name) commit)
+/// Starts a verified load of the investigation at `commit`; `pending` names what the load is for.
+let private loadRequest (m: Model) (pending: string * Load.Load -> Request) (id: string) (commit: string) =
+    let load, request = Load.start m.Connection.Value id commit
+    send m (pending(id, load)) request
 
 let private emptySession id commit =
     { Id = id; Load = Pending; BaseCommit = commit; BaseFiles = None; BaseState = None; Current = None; Unsaved = []; Sent = 0
       Save = Unsaved; Conflict = None; Refused = []; Fault = None }
-
-let private assemble (got: Map<string, string>) =
-    { Manifest = got.["manifest.json"]; Events = got.["events.ndjson"]; Snapshot = got.["snapshot.json"] }
 
 // ---- Saving ----
 
@@ -198,14 +197,18 @@ let rec private handleNext (env: Env) (m: Model) (id: string) (next: SaveProcess
             | SaveProcess.ConflictAt h ->
                 let m' =
                     updateSession m1 id (fun s ->
-                        { s with Sent = 0; Conflict = Some { Head = h; Theirs = None; TheirsError = None; Reviewing = false; ConfirmDiscard = false } })
-                fileRequest m' (PTheirs(id, h, Map.empty)) id h Map.empty
+                        { s with Sent = 0; Conflict = Some { Head = h; Theirs = None; TheirsConfirmation = None; TheirsError = None; Reviewing = false; ConfirmDiscard = false } })
+                loadRequest m' PTheirs id h
             | SaveProcess.Stopped -> updateSession m1 id (fun s -> { s with Sent = 0 }), []
         let m3, more = startNext env m2
         m3, effects @ more
 
 and startNext (env: Env) (m: Model) : Model * Effect list =
     match m.Active, m.Queue, m.Connection with
+    | None, id :: rest, Some _ when not m.Online ->
+        // Known offline: no request is sent; a queued save waits as Offline for the user (PERSIST-018).
+        let m1 = { m with Queue = rest }
+        startNext env (match m1.Sessions.TryFind id with Some { Save = Saving } -> applyInputs m1 id [ NotSent ] | _ -> m1)
     | None, id :: rest, Some conn ->
         let m1 = { m with Queue = rest }
         match m1.Sessions.TryFind id with
@@ -326,7 +329,11 @@ let private safeName (s: string) = s <> "" && s |> Seq.forall (fun c -> Char.IsL
 let private safeWorkspace (s: string) =
     s <> "" && not (s.Contains "..") && not (s.StartsWith "/") && s |> Seq.forall (fun c -> Char.IsLetterOrDigit c || c = '-' || c = '_' || c = '/' || c = '.')
 
-let private safeApi (s: string) = s = defaultApi || s.StartsWith "http://localhost:" || s.StartsWith "http://127.0.0.1:"
+/// The credential goes only to GitHub's API over HTTPS, or to this site's own origin (the test server's
+/// same-origin GitHub stand-in); never to another host or over plaintext.
+let sameOriginApi = "/github"
+
+let private safeApi (s: string) = s = defaultApi || s = sameOriginApi
 
 let private connect (env: Env) (m: Model) =
     let owner, repo, branch, workspace, token = draft m "connect.owner", draft m "connect.repo", draft m "connect.branch", draft m "connect.workspace", draft m "connect.token"
@@ -342,7 +349,8 @@ let private connect (env: Env) (m: Model) =
         send m1 PRepository (repository conn)
 
 let private disconnect (m: Model) =
-    { init m.SessionId with Form = m.Form |> Map.remove "connect.token"; Online = m.Online; Polite = "Disconnected" }
+    // The write-marker sequence continues, so no marker is ever sent twice by this tab (PERSIST-015).
+    { init m.SessionId with Form = m.Form |> Map.remove "connect.token"; Online = m.Online; Sequence = m.Sequence; Polite = "Disconnected" }
 
 let private loadAll (m: Model) (commit: string) (ids: string list) =
     let m1 =
@@ -351,7 +359,7 @@ let private loadAll (m: Model) (commit: string) (ids: string list) =
             Head = Some commit
             Sessions = ids |> List.fold (fun acc id -> Map.add id (emptySession id commit) acc) m.Sessions
             Order = m.Order @ (ids |> List.filter (fun id -> not (List.contains id m.Order))) }
-    ids |> List.fold (fun (mm, effs) id -> let mm', e = fileRequest mm (PLoad(id, commit, Map.empty)) id commit Map.empty in mm', effs @ e) (m1, [])
+    ids |> List.fold (fun (mm, effs) id -> let mm', e = loadRequest mm PLoad id commit in mm', effs @ e) (m1, [])
 
 let private readError (answer: ReadAnswer<'a>) =
     match answer with
@@ -363,26 +371,23 @@ let private readError (answer: ReadAnswer<'a>) =
     | ReadFailed e -> e
     | Read _ -> "unexpected"
 
-let private onLoaded (env: Env) (m: Model) id commit (got: Map<string, string>) =
-    let files = assemble got
-    match FileSet.verify id files with
-    | Ok v ->
-        let c = Confirmation.ofVerifiedRead commit files (env.Context.Now())
-        updateSession m id (fun s ->
-            { s with Load = Ready; BaseCommit = commit; BaseFiles = Some files; BaseState = Some v.Investigation; Current = Some v.Investigation
-                     Unsaved = []; Sent = 0; Save = Saved c; Conflict = None; Refused = [] }), []
-    | Error e -> updateSession m id (fun s -> { s with Load = LoadFailed("Refused, because the data failed verification: " + e) }), []
+/// Whether replacing the session with a newly loaded version would lose work: edits not yet confirmed,
+/// a save in flight, or a conflict awaiting the user (PERSIST-019).
+let private holdsWork (m: Model) (s: Session) =
+    s.Current.IsSome && (not s.Unsaved.IsEmpty || (match s.Save with Saved _ -> false | _ -> true) || m.Active |> Option.exists (fst >> (=) s.Id))
 
-let private onTheirs (env: Env) (m: Model) id commit (got: Map<string, string>) =
-    let r = FileSet.verify id (assemble got)
-    updateSession m id (fun s ->
-        { s with
-            Conflict =
-                s.Conflict
-                |> Option.map (fun c ->
-                    match r with
-                    | Ok v -> { c with Theirs = Some v; TheirsError = None }
-                    | Error e -> { c with TheirsError = Some e }) }), []
+let private onLoaded (m: Model) id (v: Verified, c: Confirmation) =
+    match m.Sessions.TryFind id with
+    | Some s when holdsWork m s ->
+        { (updateSession m id (fun s -> { s with Load = Ready })) with
+            Notice = "Your unsaved changes were kept; the GitHub version was not loaded over them." }, []
+    | _ ->
+        updateSession m id (fun s ->
+            { s with Load = Ready; BaseCommit = Confirmation.commit c; BaseFiles = Some v.Files; BaseState = Some v.Investigation; Current = Some v.Investigation
+                     Unsaved = []; Sent = 0; Save = Saved c; Conflict = None; Refused = [] }), []
+
+let private withTheirs (m: Model) id (f: ConflictInfo -> ConflictInfo) =
+    updateSession m id (fun s -> { s with Conflict = s.Conflict |> Option.map f })
 
 let private onReply (env: Env) (m: Model) (pending: Request) (reply: Reply) : Model * Effect list =
     match pending with
@@ -403,23 +408,27 @@ let private onReply (env: Env) (m: Model) (pending: Request) (reply: Reply) : Mo
         | Read ids -> loadAll m h ids
         | ReadFailed e -> { m with Connectivity = Incompatible e }, []
         | other -> { m with Connectivity = Unreachable(readError other) }, []
-    | PLoad(id, commit, got) ->
-        match classifyRead decodeText reply with
-        | Read text ->
-            let got' = got.Add(SaveProcess.fileNames.[got.Count], text)
-            if got'.Count < 3 then fileRequest m (PLoad(id, commit, got')) id commit got' else onLoaded env m id commit got'
-        | other -> updateSession m id (fun s -> { s with Load = (if s.Current.IsSome then s.Load else LoadFailed(readError other)); Fault = Some(readError other) }), []
+    | PLoad(id, load) ->
+        match Load.onReply load reply (env.Context.Now()) with
+        | Load.Next(load', request) -> send m (PLoad(id, load')) request
+        | Load.Loaded(v, c) -> onLoaded m id (v, c)
+        | Load.Refused e ->
+            // A refused refresh keeps the loaded version; only a first load fails.
+            updateSession m id (fun s ->
+                { s with
+                    Load = (if s.Current.IsSome then Ready else LoadFailed("Refused, because the data failed verification: " + e))
+                    Fault = Some("The GitHub version failed verification: " + e) }), []
+        | Load.NotRead other -> updateSession m id (fun s -> { s with Load = (if s.Current.IsSome then Ready else LoadFailed(readError other)); Fault = Some(readError other) }), []
     | PRefreshHead id ->
         match classifyRead decodeHead reply with
-        | Read h -> fileRequest (updateSession m id (fun s -> { s with Load = Pending })) (PLoad(id, h, Map.empty)) id h Map.empty
+        | Read h -> loadRequest m PLoad id h
         | other -> { m with Notice = "Could not read GitHub: " + readError other }, []
-    | PTheirs(id, commit, got) ->
-        match classifyRead decodeText reply with
-        | Read text ->
-            let got' = got.Add(SaveProcess.fileNames.[got.Count], text)
-            if got'.Count < 3 then fileRequest m (PTheirs(id, commit, got')) id commit got' else onTheirs env m id commit got'
-        | other ->
-            updateSession m id (fun s -> { s with Conflict = s.Conflict |> Option.map (fun c -> { c with TheirsError = Some(readError other) }) }), []
+    | PTheirs(id, load) ->
+        match Load.onReply load reply (env.Context.Now()) with
+        | Load.Next(load', request) -> send m (PTheirs(id, load')) request
+        | Load.Loaded(v, c) -> withTheirs m id (fun ci -> { ci with Theirs = Some v; TheirsConfirmation = Some c; TheirsError = None }), []
+        | Load.Refused e -> withTheirs m id (fun ci -> { ci with TheirsError = Some e }), []
+        | Load.NotRead other -> withTheirs m id (fun ci -> { ci with TheirsError = Some(readError other) }), []
     | PSave id ->
         match m.Active with
         | Some(activeId, save) when activeId = id -> handleNext env m id (SaveProcess.onReply save reply (env.Context.Now()) (env.Nonce()))
@@ -429,13 +438,12 @@ let private onReply (env: Env) (m: Model) (pending: Request) (reply: Reply) : Mo
 
 let private reapply (env: Env) (m: Model) (id: string) =
     match m.Sessions.TryFind id with
-    | Some({ Conflict = Some { Theirs = Some theirs; Head = h } } as s) ->
+    | Some({ Conflict = Some { Theirs = Some theirs; TheirsConfirmation = Some c; Head = h } } as s) ->
         let folder (state, accepted, refused) (cmd: Command, old: Envelope) =
             match decide env.Context id (Some state) cmd with
             | Ok(envelope, next) -> next, accepted @ [ cmd, envelope ], refused
             | Error reason -> state, accepted, refused @ [ old.EventType, reason ]
         let final, accepted, refused = s.Unsaved |> List.fold folder (theirs.Investigation, [], [])
-        let c = Confirmation.ofVerifiedRead h theirs.Files (env.Context.Now())
         let m1 =
             updateSession m id (fun s ->
                 { s with BaseCommit = h; BaseFiles = Some theirs.Files; BaseState = Some theirs.Investigation; Current = Some final
@@ -445,8 +453,7 @@ let private reapply (env: Env) (m: Model) (id: string) =
 
 let private discard (env: Env) (m: Model) (id: string) =
     match m.Sessions.TryFind id with
-    | Some({ Conflict = Some { Theirs = Some theirs; Head = h; ConfirmDiscard = true } }) ->
-        let c = Confirmation.ofVerifiedRead h theirs.Files (env.Context.Now())
+    | Some({ Conflict = Some { Theirs = Some theirs; TheirsConfirmation = Some c; Head = h; ConfirmDiscard = true } }) ->
         let m1 =
             updateSession m id (fun s ->
                 { s with BaseCommit = h; BaseFiles = Some theirs.Files; BaseState = Some theirs.Investigation; Current = Some theirs.Investigation
@@ -527,7 +534,7 @@ let update (env: Env) (m: Model) (msg: Inbound) : Model * Effect list =
             | None -> m, []
         | "refresh", _, _ ->
             match current m, m.Connection with
-            | Some id, Some conn when (match m.Sessions.TryFind id with Some { Save = Saved _ } -> true | _ -> false) ->
+            | Some id, Some conn when (match m.Sessions.TryFind id with Some s -> not (holdsWork m s) | None -> false) ->
                 send m (PRefreshHead id) (head conn (env.Nonce()))
             | _ -> { m with Notice = "Save or resolve your changes before loading the GitHub version." }, []
         | "select", Some id, _ -> { m with Selected = (if m.Selected = Some id then None else Some id) }, []

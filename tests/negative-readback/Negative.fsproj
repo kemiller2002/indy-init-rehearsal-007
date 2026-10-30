@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- PAT-12 compile-time negative check: this project MUST NOT compile. -->
+  <ItemGroup>
+    <Compile Include="ForgeReadBack.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Causa.Persistence/Causa.Persistence.fsproj" />
+  </ItemGroup>
+</Project>

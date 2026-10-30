@@ -31,7 +31,7 @@ type Provider =
 
 let fakeProvider (owner: string) (name: string) (token: string) : Provider * (unit -> FakeGitHub.State) * ((FakeGitHub.State -> FakeGitHub.State) -> unit) =
     let state = ref (FakeGitHub.create owner name token [])
-    let api = "http://localhost:1"
+    let api = App.sameOriginApi
     let send (r: GitHub.Request) =
         let path = r.Url.Substring api.Length
         let auth = r.Headers |> List.tryFind (fst >> (=) "authorization") |> Option.map snd |> Option.defaultValue ""

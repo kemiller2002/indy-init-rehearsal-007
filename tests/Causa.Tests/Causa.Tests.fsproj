@@ -9,6 +9,7 @@
     <Compile Include="SaveStateTests.fs" />
     <Compile Include="PatTests.fs" />
     <Compile Include="CopyTests.fs" />
+    <Compile Include="RemediationTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
