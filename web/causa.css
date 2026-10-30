@@ -3,12 +3,12 @@
 :root {
   --causa-gap: var(--ef-space-4, 1rem);
 }
-body { margin: 0; font-family: var(--ef-font-family-sans, system-ui, sans-serif); background: var(--ef-color-surface-canvas, Canvas); color: var(--ef-color-text-primary, CanvasText); }
+body { margin: 0; font-family: var(--ef-type-family-body, system-ui, sans-serif); background: var(--ef-color-surface-primary, Canvas); color: var(--ef-color-text-primary, CanvasText); }
 .causa-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .causa-skip { position: absolute; left: -999px; }
 .causa-skip:focus { left: var(--causa-gap); top: var(--causa-gap); z-index: 10; }
 .causa-loading { display: grid; place-items: center; min-height: 100vh; text-align: center; padding: var(--causa-gap); }
-.causa-loading__mark { width: 3rem; height: 3rem; border-radius: 50%; border: 0.3rem solid var(--ef-color-border-subtle, GrayText); border-top-color: var(--ef-color-action-primary, Highlight); animation: causa-spin 1s linear infinite; }
+.causa-loading__mark { width: 3rem; height: 3rem; border-radius: 50%; border: 0.3rem solid var(--ef-color-border-subtle, GrayText); border-top-color: var(--ef-color-accent-primary, Highlight); animation: causa-spin 1s linear infinite; }
 @keyframes causa-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .causa-loading__mark { animation: none; } }
 .causa-header { display: flex; flex-wrap: wrap; gap: var(--causa-gap); align-items: center; justify-content: space-between; padding: 0.75rem var(--causa-gap); border-bottom: 1px solid var(--ef-color-border-subtle, GrayText); }
@@ -17,7 +17,7 @@ body { margin: 0; font-family: var(--ef-font-family-sans, system-ui, sans-serif)
 .causa-header__status { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 .causa-connection { font-weight: 600; }
 .causa-main { padding: var(--causa-gap); max-width: 80rem; margin: 0 auto; box-sizing: border-box; }
-.causa-mode, .causa-unsaved, .causa-notice, .causa-confirm { margin: 0.5rem var(--causa-gap); padding: 0.75rem var(--causa-gap); border: 2px solid var(--ef-color-border-strong, CanvasText); border-radius: 0.5rem; }
+.causa-mode, .causa-unsaved, .causa-notice, .causa-confirm { margin: 0.5rem var(--causa-gap); padding: 0.75rem var(--causa-gap); border: 2px solid var(--ef-color-border-functional, CanvasText); border-radius: 0.5rem; }
 .causa-unsaved ul { display: inline; padding: 0; margin: 0; list-style: none; }
 .causa-unsaved li { display: inline; margin-inline-end: 0.75rem; }
 .causa-panel { padding: var(--causa-gap); border: 1px solid var(--ef-color-border-subtle, GrayText); border-radius: 0.5rem; margin-bottom: var(--causa-gap); overflow-wrap: anywhere; }
@@ -32,7 +32,7 @@ button { font: inherit; min-height: 2.75rem; padding: 0.4rem 0.9rem; cursor: poi
 .causa-cards { list-style: none; padding: 0; display: grid; gap: var(--causa-gap); grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); }
 .causa-card { padding: var(--causa-gap); border: 1px solid var(--ef-color-border-subtle, GrayText); border-radius: 0.5rem; overflow-wrap: anywhere; }
 .causa-card h2 { margin-top: 0; font-size: 1.15rem; }
-.causa-save { margin: 0.75rem 0; padding: 0.75rem; border: 2px solid var(--ef-color-border-strong, CanvasText); border-radius: 0.5rem; }
+.causa-save { margin: 0.75rem 0; padding: 0.75rem; border: 2px solid var(--ef-color-border-functional, CanvasText); border-radius: 0.5rem; }
 .causa-save__text { margin: 0.5rem 0; }
 .causa-op-title { font-size: 1.1rem; margin: 0.4rem 0; }
 .causa-workspace { display: grid; gap: var(--causa-gap); grid-template-columns: 1fr; }
@@ -41,7 +41,7 @@ button { font: inherit; min-height: 2.75rem; padding: 0.4rem 0.9rem; cursor: poi
 .causa-list { padding-inline-start: 1.1rem; }
 .causa-list li { margin: 0.3rem 0; }
 .causa-entity { text-align: start; width: 100%; background: transparent; border: 1px solid var(--ef-color-border-subtle, GrayText); border-radius: 0.4rem; color: inherit; }
-.causa-entity[aria-pressed="true"] { border-width: 3px; border-color: var(--ef-color-action-primary, Highlight); }
+.causa-entity[aria-pressed="true"] { border-width: 3px; border-color: var(--ef-color-accent-primary, Highlight); }
 .causa-state { font-weight: 600; white-space: nowrap; }
 .causa-pending { font-weight: 700; border: 1px dashed currentColor; padding: 0 0.3rem; margin-inline-start: 0.3rem; }
 .causa-inspector__label { font-size: 1.1rem; font-weight: 600; }
