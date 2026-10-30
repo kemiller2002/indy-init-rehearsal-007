@@ -132,7 +132,9 @@ jobs:
 
   deployed-acceptance:
     name: deployed-acceptance
-    needs: deploy
+    # After live-provider, so two live writers never share the test repository at once.
+    needs: [deploy, live]
+    if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

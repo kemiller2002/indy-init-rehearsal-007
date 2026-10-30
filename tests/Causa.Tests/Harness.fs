@@ -73,13 +73,21 @@ let liveProvider (owner: string) (name: string) (branch: string) (token: string)
         match liveSend (GitHub.head conn (Guid.NewGuid().ToString "N")) with
         | Answered(200, body) -> (match decodeHead body with Ok h -> h | Error e -> failwith e)
         | other -> failwithf "could not read the live branch head: %A" other
-    let rec otherWriter (files: (string * string) list) =
+    // The test's own other writer: retried with backoff on stale heads and rate limits; any other refusal
+    // fails the test with GitHub's message (never the credential).
+    let rec otherWriterAttempt (attempt: int) (files: (string * string) list) =
         let h = head ()
         let r = GitHub.createCommit conn h "Causa PAT: another writer" (Guid.NewGuid().ToString "N") files
-        match classifyCommit (liveSend r) with
+        let reply = liveSend r
+        let detail = match reply with Answered(status, body) -> sprintf "HTTP %d %s" status (compact body) | other -> sprintf "%A" other
+        match classifyCommit reply with
         | Committed oid -> oid
-        | StaleHead -> otherWriter files
-        | other -> failwithf "the other writer could not commit: %A" other
+        | StaleHead when attempt < 5 -> otherWriterAttempt (attempt + 1) files
+        | RateLimit when attempt < 5 ->
+            Threading.Thread.Sleep(TimeSpan.FromSeconds(float (5 * (attempt + 1))))
+            otherWriterAttempt (attempt + 1) files
+        | other -> failwithf "the other writer could not commit (%A): %s" other (detail.Replace(token, "***"))
+    let otherWriter files = otherWriterAttempt 0 files
     { Mode = "live"; ApiBase = conn.ApiBase; Owner = owner; Name = name; Branch = branch; Token = token; Send = liveSend
       OtherWriter = otherWriter
       Head = head
