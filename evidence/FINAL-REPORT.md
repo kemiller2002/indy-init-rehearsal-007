@@ -166,3 +166,39 @@ Full details are in `evidence/telemetry/README.md`.
 6. **Put a ruleset on `main`.** Require `build-and-test`, `independent-review` and `causa-ci`, which turns the advisory merge gate (KD-003) into a real one.
 7. **Give each CI run its own live test branch,** instead of serializing every run on one.
 8. **Schedule an independent adversarial review after every fix round, not only at the end.** Read the wall clock before any time-based decision.
+
+## Addendum: after the deadline (2026-10-30T06:45Z)
+
+Everything in this addendum happened after the 05:49:55Z deadline, at the owner's request. **None of it changes the timed result or the acceptance verdict.**
+
+### Merged after the deadline
+
+| PR | Content | Merge commit |
+|---|---|---|
+| #27 | this report, telemetry, ledger statuses, checkpoint, provenance | 02641fb |
+| #28 | third-review fixes (conflict re-read race, stale refresh), PAT-05 test timing, Forma token CSS fix | 9b307aa |
+
+### Main 9b307aa, run 41012468819: all jobs green
+
+This was the first fully green `main` run of the rehearsal.
+
+| Check | Result |
+|---|---|
+| Core: F# suites, PAT-12 negative, PAT-13 artifact scan, browser acceptance in Chromium and WebKit against the fake | PASS |
+| Live provider: catalog 4/4 verified by replay, live persistence suite against GitHub | PASS |
+| Deploy, with exact-SHA smoke | PASS |
+| Deployed acceptance against live GitHub, Chromium and WebKit | **PASS, 48/48** |
+
+What this resolves from §3.1:
+- **WebKit PAT-05 passes.**
+- **The 9 WebKit tests that did not run before now ran and passed:** the PAT-11 runs without Web Locks, PAT-07, PAT-09, PERSIST-020, EXT-DATA-002 and EXT-DATA-009.
+- **The deployed site carries the CSS token fix** (§7) **and the third review's fixes.**
+
+### What this addendum does not change
+
+- **Acceptance remains NOT VERIFIED, NOT ACCEPTED.**
+  - Three independent reviews each returned FAIL.
+  - No independent review has examined 9b307aa.
+  - The open items in §5 remain open.
+- **The PAT-13 provenance comparison remains BLOCKED** for this agent.
+- **Recommendation 1 stands:** an independent verifier should re-run acceptance on the final SHA, now 9b307aa.
