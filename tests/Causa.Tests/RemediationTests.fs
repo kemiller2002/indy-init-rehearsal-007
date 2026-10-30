@@ -199,7 +199,7 @@ let application =
             let before = (mutations d).Length
             send d a (Limen.Event("save", Some first, None)) // its mutation is queued but not yet answered
             send d a (Limen.Event("save", Some second, None))
-            Expect.equal (saveState a second) "Saving" "the second save waits behind the first"
+            Expect.equal (saveState a second) "Unsaved" "the second save waits behind the first, with nothing sent for it"
             d.Net.Online <- false
             send d a (Limen.Event("net", None, Some "offline"))
             settle d [ a ]
@@ -223,4 +223,108 @@ let security =
         }
     ]
 
-let tests = testList "review remediation" [ saveProcess; confirmation; application; security ]
+// ---- Second independent review (H1, H2, M1, L1, L2) ----
+
+/// Tab A holds an unsaved change; another writer changes the same investigation, so A's save is a conflict.
+let private conflicted () =
+    let d, ws, update, a, id = seeded ()
+    let b = newTab "B"
+    connect d b ws
+    observe d b id "from B"
+    save d b id
+    observe d a id "only in A"
+    d, update, a, id
+
+let secondReview =
+    testList "review remediation: second review" [
+        test "H1: a conflict whose GitHub version could not be read is read again when the connection returns" {
+            let d, _, a, id = conflicted ()
+            send d a (Limen.Event("save", Some id, None))
+            // The conflict is found, then the network drops while reading GitHub's version.
+            let rec untilConflict n = if n > 0 && saveState a id <> "Conflict" then (stepOne d; untilConflict (n - 1))
+            untilConflict 30
+            Expect.equal (saveState a id) "Conflict" "a conflict"
+            d.Net.FailReads <- true
+            settle d [ a ]
+            Expect.isSome (session a id).Conflict.Value.TheirsError "GitHub's version could not be read"
+            d.Net.FailReads <- false
+            send d a (Limen.Event("net", None, Some "offline"))
+            send d a (Limen.Event("net", None, Some "online"))
+            settle d [ a ]
+            Expect.isSome (session a id).Conflict.Value.Theirs "read again on reconnect"
+            send d a (Limen.Event("conflict.reapply", None, None))
+            Expect.equal (saveState a id) "Unsaved" "the change is reapplied and kept"
+            save d a id
+            Expect.equal (saveState a id) "Saved" "and can be saved"
+        }
+        test "H1: Read the GitHub version again reads the branch's current head" {
+            let d, _, a, id = conflicted ()
+            d.Net.FailReads <- false
+            send d a (Limen.Event("save", Some id, None))
+            let rec untilConflict n = if n > 0 && saveState a id <> "Conflict" then (stepOne d; untilConflict (n - 1))
+            untilConflict 30
+            d.Net.FailReads <- true
+            settle d [ a ]
+            d.Net.FailReads <- false
+            let before = (session a id).Conflict.Value.Head
+            d.Provider.OtherWriter [ "notes/after-conflict.md", "moved\n" ] |> ignore
+            Expect.notEqual (d.Provider.Head()) before "the branch moved after the conflict was found"
+            send d a (Limen.Event("conflict.reread", None, None))
+            settle d [ a ]
+            Expect.equal (session a id).Conflict.Value.Head (d.Provider.Head()) "read at the current head"
+            Expect.isSome (session a id).Conflict.Value.Theirs "the GitHub version is available"
+            Expect.equal (session a id).Unsaved.Length 1 "the change is still kept"
+        }
+        test "H2: every confirmation is bound to the investigation it confirms" {
+            let d, _, _, a, first = seeded ()
+            let second = createInvestigation d a "Other"
+            save d a second
+            let confirmationOf id = match (session a id).Save with Saved c -> c | other -> failtestf "%s is %s" id (SaveState.name other)
+            Expect.equal (Confirmation.investigationId (confirmationOf first)) first "the first's read-back names the first"
+            Expect.equal (Confirmation.investigationId (confirmationOf second)) second "the second's read-back names the second"
+            let reader = newTab "R"
+            connect d reader (a.Model.Connection.Value.Workspace)
+            Expect.equal (Confirmation.investigationId (match (session reader first).Save with Saved c -> c | _ -> failtest "loaded")) first "a load names what it loaded"
+        }
+        test "M1: values the contract fixes are refused when different" {
+            let d, _, _, a, id = seeded ()
+            let files = (session a id).BaseFiles.Value
+            Expect.isOk (verify id files) "the saved file set verifies"
+            let digest text = parse text |> Result.defaultWith failwith |> canonicalSha256
+            let resealed (snapshot: string) = { files with Snapshot = snapshot; Manifest = files.Manifest.Replace(digest files.Snapshot, digest snapshot) }
+            [ "a manifest schemaVersion", { files with Manifest = files.Manifest.Replace("\"schemaVersion\":\"1.0.0\"", "\"schemaVersion\":\"9.9.9\"") }
+              "manifest domainPacks", { files with Manifest = files.Manifest.Replace("\"domainPacks\":[]", "\"domainPacks\":[\"evil\"]") }
+              "a snapshot projectionVersion", resealed (files.Snapshot.Replace("\"projectionVersion\":1", "\"projectionVersion\":7"))
+              "a snapshot semanticVersion", resealed (files.Snapshot.Replace("\"semanticVersion\":\"1.0.0\"", "\"semanticVersion\":\"2.0.0\"")) ]
+            |> List.iter (fun (what, forged) ->
+                Expect.notEqual forged files (sprintf "%s was changed" what)
+                Expect.isError (verify id forged) (sprintf "%s is refused" what))
+        }
+        test "L1: a compare answer that is ahead with no commits does not crash reconciliation" {
+            let answer (r: Request) =
+                if isMutation r then Lost
+                elif r.Url.Contains "/compare/" then Answered(200, JObject [ "status", JString "ahead"; "commits", JArray [] ])
+                else contents (fileText r)
+            let t = drive answer
+            Expect.equal t.Outcome "awaiting the user" "the outcome stays unknown"
+            Expect.isFalse (t.Inputs |> List.contains StaleConflict) "not a conflict"
+        }
+        test "L2: a save waiting behind another does not claim to be sending" {
+            let d, _, _, a, first = seeded ()
+            let second = createInvestigation d a "Second"
+            observe d a first "pending"
+            d.Net.Mutations <- [ DropAnswer ]
+            d.AutoTimers <- false
+            save d a first
+            Expect.equal (saveState a first) "Unknown commit outcome" "the first waits to reconcile"
+            send d a (Limen.Event("save", Some second, None))
+            Expect.equal (saveState a second) "Unsaved" "nothing is being sent for the second"
+            d.AutoTimers <- true
+            send d a (Limen.Event("checkAgain", None, None))
+            settle d [ a ]
+            Expect.equal (saveState a first) "Saved" "the first is confirmed"
+            Expect.equal (saveState a second) "Saved" "then the second is sent and confirmed"
+        }
+    ]
+
+let tests = testList "review remediation" [ saveProcess; confirmation; application; security; secondReview ]

@@ -39,3 +39,16 @@ A new independent verification is required before any acceptance claim (see the 
 | F15 | Low | Fixed | a refresh whose read fails or is refused keeps the loaded investigation (Ready) and reports the fault | `F15: a refresh whose file read fails leaves the investigation loaded` | killed |
 
 Checked by the reviewer and found sound: expected head on every mutation, the investigation path prefix, bounded retries, the memory-only token, no XSS sink.
+
+## Found by the second independent review (verdict FAIL, 2026-10-30T02:55Z, main at 5b70660)
+
+A second fresh read-only reviewer re-reviewed main after the first remediation. Its verdict is recorded as given.
+It confirmed the first review's fixes as sound (read-back, state machine, network-never-conflict, bounds, refresh, credential handling, its own five mutants all caught) and found:
+
+| Finding | Severity | Status | Fix | Regression test | Mutation check |
+|---|---|---|---|---|---|
+| H1 | High | Fixed | a conflict's GitHub version is read again from the branch's current head: automatically when the connection returns, and on "Read the GitHub version again"; the unsaved change is kept throughout | `H1: … read again when the connection returns` (then reapply and save); `H1: Read the GitHub version again reads the branch's current head` | no re-read on reconnect: killed; re-read at the old head: killed (after strengthening the test to move the head) |
+| H2 | High | Partly addressed (structural limit) | every Confirmation now names its investigation and the app refuses one for another investigation; opening goes through the save-state machine (`Opened`) instead of setting Saved directly. Remaining: SaveProcess/Load and the `Reply` type are public, so code that fabricates GitHub answers in-process can still drive the protocol to a confirmation. No production path fabricates replies; closing this needs the transport boundary moved into the persistence assembly, not done in this run | `H2: every confirmation is bound to the investigation it confirms`; PAT-12 machine test now admits only confirmation-carrying inputs | — |
+| M1 | Medium | Fixed | contract-fixed values are checked: manifest `schemaVersion`, `semanticVersion`, `snapshotVersion`, `domainPacks`; snapshot `formatVersion`, `semanticVersion`, `projectionVersion` | `M1: values the contract fixes are refused when different` (4 forgeries) | killed; the live catalog check re-runs the reader on causa-data |
+| L1 | Low | Fixed | an "ahead" compare with no commits waits for another reconciliation read instead of throwing | `L1: …does not crash reconciliation` | killed |
+| L2 | Low | Fixed | a save waiting behind another stays in its own state (nothing is sent for it) with a notice, and is moved to Saving only when it starts | `L2: a save waiting behind another does not claim to be sending` | killed |

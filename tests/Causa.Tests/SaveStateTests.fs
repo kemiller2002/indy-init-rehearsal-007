@@ -6,7 +6,7 @@ open Causa.Domain.FileSet
 open Causa.Persistence
 
 let private files = { Manifest = "m"; Events = "e"; Snapshot = "s" }
-let private confirmation = Confirmation.ofReadBack "abc" files files "2026-10-29T23:00:00.000Z" |> Result.defaultWith failwith
+let private confirmation = Confirmation.ofReadBack "inv" "abc" files files "2026-10-29T23:00:00.000Z" |> Result.defaultWith failwith
 
 let states =
     [ Saved confirmation; Unsaved; Saving; Offline; Conflict; UnknownOutcome; SaveFailed RateLimited ]
@@ -15,7 +15,7 @@ let inputs =
     [ Edited true; Edited false; SaveRequested true; SaveRequested false; NotSent; MutationSent; StaleUnrelated; StaleConflict
       Confirmed(confirmation, false, true); Confirmed(confirmation, true, true); Confirmed(confirmation, true, false)
       OutcomeLost; Failed CredentialRefused; NothingWritten; ConnectivityLost; ConnectivityRestored; Discarded confirmation
-      Reapplied(confirmation, true, true); Reapplied(confirmation, false, true) ]
+      Reapplied(confirmation, true, true); Reapplied(confirmation, false, true); Opened confirmation ]
 
 /// The expected machine, written from PERSIST-031 independently of the implementation.
 /// None means the input is illegal in that state and must fail closed.
@@ -35,6 +35,7 @@ let expected (state: SaveState) (input: SaveInput) : string option =
     | "Saving", NotSent -> Some "Offline"
     | ("Saving" | "Unknown commit outcome" | "Conflict"), (ConnectivityLost | ConnectivityRestored) -> Some s
     | "Saving", (MutationSent | StaleUnrelated) -> Some "Saving"
+    | ("Saved" | "Unsaved"), Opened _ -> Some "Saved"
     | ("Saving" | "Unknown commit outcome"), StaleConflict -> Some "Conflict"
     | ("Saving" | "Unknown commit outcome"), Confirmed(_, false, _) -> Some "Saved"
     | ("Saving" | "Unknown commit outcome"), Confirmed(_, true, true) -> Some "Unsaved"
@@ -64,17 +65,17 @@ let tests =
                     | Some want, Error f -> failtestf "expected %s, got fault %s" want f.Reason
                     | None, Ok got -> failtestf "illegal input accepted, reached %s" (SaveState.name got)
                 }
-        test "Saved is reached only through an input that carries a read-back confirmation" {
+        test "Saved is reached only through an input that carries a GitHub confirmation" {
             for state in states do
                 for input in inputs do
                     match SaveState.step state input with
                     | Ok(Saved _) when SaveState.name state <> "Saved" ->
                         match input with
-                        | Confirmed _ | Discarded _ | Reapplied _ -> ()
+                        | Confirmed _ | Discarded _ | Reapplied _ | Opened _ -> ()
                         | other -> failtestf "%s reached Saved from %s" (SaveState.inputName other) (SaveState.name state)
                     | _ -> ()
         }
         test "a read-back with different bytes yields no confirmation" {
-            Expect.isError (Confirmation.ofReadBack "abc" files { files with Events = "other" } "t") "mismatch refused"
+            Expect.isError (Confirmation.ofReadBack "inv" "abc" files { files with Events = "other" } "t") "mismatch refused"
         }
     ]

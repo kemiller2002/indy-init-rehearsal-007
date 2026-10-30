@@ -113,6 +113,11 @@ let private graphQLErrors body =
 
 let private isOid (s: string) = s.Length = 40 && s |> Seq.forall Uri.IsHexDigit
 
+/// GitHub's ref-update race: when the branch moves between the expected-head check and the update,
+/// it answers FORBIDDEN "is at <oid> but expected <oid>" instead of STALE_DATA (observed live, KD-022).
+let private isMovedHeadText (m: string) =
+    Text.RegularExpressions.Regex.IsMatch(m, "^is at [0-9a-f]{40} but expected [0-9a-f]{40}$")
+
 /// Classifies a createCommitOnBranch answer from its typed content (PERSIST-008).
 let classifyCommit (reply: Reply) : CommitAnswer =
     match reply with
@@ -131,7 +136,7 @@ let classifyCommit (reply: Reply) : CommitAnswer =
             |> Option.bind (field "oid")
         match oid, graphQLErrors body with
         | Some(JString oid), [] when isOid oid -> Committed oid
-        | _, errors when errors |> List.exists (fun (t, m) -> t = "STALE_DATA" || m.StartsWith "Expected branch to point to") -> StaleHead
+        | _, errors when errors |> List.exists (fun (t, m) -> t = "STALE_DATA" || m.StartsWith "Expected branch to point to" || isMovedHeadText m) -> StaleHead
         | _, errors when errors |> List.exists (fun (t, m) -> t = "RATE_LIMITED" || isRateLimitText m) -> RateLimit
         | _, errors when errors |> List.exists (fun (t, _) -> t = "FORBIDDEN" || t = "INSUFFICIENT_SCOPES") -> PermissionRefused
         | _, ((_, m) :: _ as errors) when errors |> List.forall (fun (t, _) -> t <> "") -> ValidationRefused m
