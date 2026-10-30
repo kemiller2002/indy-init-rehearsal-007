@@ -18,7 +18,7 @@
         "src/Causa.Domain/**",
         "tests/Causa.Tests/DomainTests.fs"
       ],
-      "status": "implemented",
+      "status": "done (merged)",
       "evidence": "tests/Causa.Tests DomainTests"
     },
     {
@@ -32,7 +32,7 @@
         "src/Causa.Persistence/**",
         "tests/negative/**"
       ],
-      "status": "implemented",
+      "status": "done (merged)",
       "evidence": "PAT-12 tests; tools/acceptance.fsx negative"
     },
     {
@@ -50,7 +50,7 @@
         "src/Causa.Host/**",
         "web/**"
       ],
-      "status": "implemented",
+      "status": "done (merged)",
       "evidence": "browser suite"
     },
     {
@@ -65,7 +65,7 @@
         "tests/Causa.Fake/**",
         "tests/Causa.Tests/**"
       ],
-      "status": "implemented",
+      "status": "done (merged)",
       "evidence": "core job; live-provider job"
     },
     {
@@ -83,7 +83,7 @@
         "tests/Causa.TestServer/**",
         "playwright.config.mjs"
       ],
-      "status": "implemented",
+      "status": "done (merged)",
       "evidence": "core job (Chromium, WebKit); deployed-acceptance job"
     },
     {
@@ -98,7 +98,7 @@
         "tools/acceptance.fsx",
         "tests/Causa.Tests/CopyTests.fs"
       ],
-      "status": "implemented; provenance comparison BLOCKED for this agent (KD-009)"
+      "status": "done (merged)"
     },
     {
       "id": "R7-WI-07",
@@ -116,7 +116,7 @@
         "build.fsx",
         "tools/catalog.fsx"
       ],
-      "status": "in progress"
+      "status": "done (merged)"
     },
     {
       "id": "R7-WI-08",
@@ -139,7 +139,7 @@
         "tools/acceptance.fsx",
         "evidence/defects.md"
       ],
-      "status": "in progress"
+      "status": "partly merged at the deadline: #25 and #26 merged; #28 (third-review fixes, green at 03:51Z) and #27 (this evidence) open, unmerged"
     }
   ]
 }

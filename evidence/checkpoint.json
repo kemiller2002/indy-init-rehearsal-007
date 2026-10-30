@@ -1,13 +1,19 @@
 {
   "schema": "causa.rehearsal-checkpoint/1",
-  "recordedAt": "2026-10-29T23:40:02Z",
+  "recordedAt": "2026-10-30T05:53:00Z",
   "t0": "2026-10-29T22:49:55Z",
   "deadline": "2026-10-30T05:49:55Z",
-  "branch": "claude/r7-kickoff",
-  "pullRequest": 23,
-  "completed": ["R7-WI-01", "R7-WI-02", "R7-WI-03", "R7-WI-04", "R7-WI-05", "R7-WI-06"],
-  "active": ["R7-WI-07"],
-  "localVerification": {"fsharpTests": "all pass (fake provider)", "browserChromium": "15/15 pass against the fake", "browserWebKit": "not available locally; CI", "pat13Artifact": "PASS", "pat12Negative": "PASS", "mutationChecks": "5/5 deliberate defects caught"},
-  "blockers": ["causa-data contract and catalog not readable from this session (add_repo refused); reader built from the candidate contract, validated by the CI live catalog job", "branch deletion refused by the session permission guard (KD-002)"],
-  "remaining": ["CI green on PR 23", "live provider and catalog results", "Pages deploy and deployed PAT-15", "independent acceptance", "final report"]
+  "atDeadline": {
+    "main": "1298489 (deployed to GitHub Pages)",
+    "mainRun": "40996455117: core, live-provider (catalog 4/4, live PAT 14/14), deploy PASS; deployed-acceptance 38 passed, 1 failed (WebKit PAT-05, test clicked Reapply before the GitHub version loaded), 9 not run",
+    "openPullRequests": {
+      "28": "third-review fixes + PAT-05 test fix, all checks green at 03:51Z on da81c79, not merged; CSS token fix 3d95108 added after the deadline",
+      "27": "final evidence; provenance and README at the deadline; telemetry, ledger, checkpoint and final report added after the deadline"
+    },
+    "independentAcceptance": "three independent reviews, each FAIL; not verified"
+  },
+  "afterDeadline": [
+    "CSS token-name fix (3d95108, PR #28) at the owner's request",
+    "telemetry report, ledger status, this checkpoint and FINAL-REPORT.md (PR #27)"
+  ]
 }
