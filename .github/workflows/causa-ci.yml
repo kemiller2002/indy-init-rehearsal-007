@@ -66,6 +66,10 @@ jobs:
   live:
     name: live-provider
     needs: core
+    # Live writers share one test repository: never two at once, across every run of this workflow.
+    concurrency:
+      group: causa-live-writers
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -134,6 +138,9 @@ jobs:
     name: deployed-acceptance
     # After live-provider, so two live writers never share the test repository at once.
     needs: [deploy, live]
+    concurrency:
+      group: causa-live-writers
+      cancel-in-progress: false
     if: always() && needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -151,7 +151,7 @@ let onReply (s: Save) (reply: Reply) (now: string) (nonce: string) : Next =
             match readFile s commit got' with
             | Some request -> Send({ s with Phase = ReadingBack(commit, got') }, request, [])
             | None ->
-                match Confirmation.ofReadBack commit s.Files (assemble got') now with
+                match Confirmation.ofReadBack s.InvestigationId commit s.Files (assemble got') now with
                 | Ok c -> Finish(Done c, [])
                 | Error _ -> Finish(Stopped, [ Failed ReadBackMismatch ])
         | _ -> unknownOutcome s
@@ -197,9 +197,11 @@ let onReply (s: Save) (reply: Reply) (now: string) (nonce: string) : Next =
                 Send(s', (readFile s' sha Map.empty).Value, [ StaleUnrelated ])
             | None when cmp.Status = "identical" -> sendCommit s [ NothingWritten ]
             | None ->
-                let h = cmp.Commits |> List.last |> fst
-                let s' = { s with Phase = ComparingFiles(h, Map.empty) }
-                Send(s', (readFile s' h Map.empty).Value, [ StaleUnrelated ])
+                match List.tryLast cmp.Commits with
+                | Some(h, _) ->
+                    let s' = { s with Phase = ComparingFiles(h, Map.empty) }
+                    Send(s', (readFile s' h Map.empty).Value, [ StaleUnrelated ])
+                | None -> scheduleReconcile s [] // "ahead" with no commits is not an answer to act on
         | Read _ | Missing -> Finish(Stopped, [ Failed HistoryRewritten ])
         | _ -> scheduleReconcile s []
     | WaitingToReconcile _ -> AwaitUser(s, [])

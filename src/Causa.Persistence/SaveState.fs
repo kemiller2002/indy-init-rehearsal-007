@@ -6,21 +6,22 @@ open Causa.Domain.FileSet
 /// module, from GitHub's answers to reads at that commit (PERSIST-007, PERSIST-023).
 /// The representation is private and both constructors are internal, so application code can obtain
 /// one only from a save's read-back (SaveProcess) or a verified load (Load).
-type Confirmation = private { Commit: string; Files: Files; ConfirmedAt: string }
+type Confirmation = private { InvestigationId: string; Commit: string; Files: Files; ConfirmedAt: string }
 
 module Confirmation =
+    let investigationId (c: Confirmation) = c.InvestigationId
     let commit (c: Confirmation) = c.Commit
     let files (c: Confirmation) = c.Files
     let confirmedAt (c: Confirmation) = c.ConfirmedAt
 
     /// A read-back: the bytes read at `commit` must equal `expected` exactly.
-    let internal ofReadBack (commit: string) (expected: Files) (read: Files) (at: string) : Result<Confirmation, string> =
-        if expected = read then Ok { Commit = commit; Files = read; ConfirmedAt = at }
+    let internal ofReadBack (investigationId: string) (commit: string) (expected: Files) (read: Files) (at: string) : Result<Confirmation, string> =
+        if expected = read then Ok { InvestigationId = investigationId; Commit = commit; Files = read; ConfirmedAt = at }
         else Error "the bytes read back from GitHub differ from the bytes the save wrote"
 
     /// Opening an investigation: bytes read at `commit` that pass full verification.
     let internal ofVerifiedRead (commit: string) (expectedId: string) (read: Files) (at: string) : Result<Verified * Confirmation, string> =
-        verify expectedId read |> Result.map (fun v -> v, { Commit = commit; Files = read; ConfirmedAt = at })
+        verify expectedId read |> Result.map (fun v -> v, { InvestigationId = expectedId; Commit = commit; Files = read; ConfirmedAt = at })
 
 type FailureCause =
     | RepositoryKeptChanging
@@ -56,6 +57,8 @@ type SaveInput =
     | ConnectivityRestored
     | Discarded of Confirmation
     | Reapplied of Confirmation * anyAccepted: bool * online: bool
+    /// The investigation was opened from a verified load and holds no work.
+    | Opened of Confirmation
 
 type SaveFault = { From: string; Input: string; Reason: string }
 
@@ -76,7 +79,7 @@ module SaveState =
         | StaleUnrelated -> "StaleUnrelated" | StaleConflict -> "StaleConflict" | Confirmed _ -> "Confirmed"
         | OutcomeLost -> "OutcomeLost" | Failed _ -> "Failed" | NothingWritten -> "NothingWritten"
         | ConnectivityLost -> "ConnectivityLost" | ConnectivityRestored -> "ConnectivityRestored"
-        | Discarded _ -> "Discarded" | Reapplied _ -> "Reapplied"
+        | Discarded _ -> "Discarded" | Reapplied _ -> "Reapplied" | Opened _ -> "Opened"
 
     let private pending online = if online then Unsaved else Offline
 
@@ -107,6 +110,7 @@ module SaveState =
             | Conflict, Discarded c -> Some(Saved c)
             | Conflict, Reapplied(c, anyAccepted, online) -> Some(if anyAccepted then pending online else Saved c)
             | Conflict, (ConnectivityLost | ConnectivityRestored) -> Some Conflict
+            | (Saved _ | Unsaved), Opened c -> Some(Saved c)
             | _ -> None
         match next with
         | Some s -> Ok s
