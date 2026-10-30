@@ -2,9 +2,10 @@ namespace Causa.Persistence
 
 open Causa.Domain.FileSet
 
-/// Proof that GitHub holds exactly these bytes at this commit: produced only by comparing
-/// a read at the commit with the bytes expected there (PERSIST-007, PERSIST-023).
-/// The representation is private, so no other code can construct one.
+/// Proof that GitHub holds exactly these bytes at this commit: produced only inside the persistence
+/// module, from GitHub's answers to reads at that commit (PERSIST-007, PERSIST-023).
+/// The representation is private and both constructors are internal, so application code can obtain
+/// one only from a save's read-back (SaveProcess) or a verified load (Load).
 type Confirmation = private { Commit: string; Files: Files; ConfirmedAt: string }
 
 module Confirmation =
@@ -13,13 +14,13 @@ module Confirmation =
     let confirmedAt (c: Confirmation) = c.ConfirmedAt
 
     /// A read-back: the bytes read at `commit` must equal `expected` exactly.
-    let ofReadBack (commit: string) (expected: Files) (read: Files) (at: string) : Result<Confirmation, string> =
+    let internal ofReadBack (commit: string) (expected: Files) (read: Files) (at: string) : Result<Confirmation, string> =
         if expected = read then Ok { Commit = commit; Files = read; ConfirmedAt = at }
         else Error "the bytes read back from GitHub differ from the bytes the save wrote"
 
-    /// Opening an investigation: the verified bytes read at `commit` are what GitHub holds there.
-    let ofVerifiedRead (commit: string) (read: Files) (at: string) : Confirmation =
-        { Commit = commit; Files = read; ConfirmedAt = at }
+    /// Opening an investigation: bytes read at `commit` that pass full verification.
+    let internal ofVerifiedRead (commit: string) (expectedId: string) (read: Files) (at: string) : Result<Verified * Confirmation, string> =
+        verify expectedId read |> Result.map (fun v -> v, { Commit = commit; Files = read; ConfirmedAt = at })
 
 type FailureCause =
     | RepositoryKeptChanging

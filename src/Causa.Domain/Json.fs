@@ -158,6 +158,13 @@ let onlyKeys (allowed: string list) (json: Json) : Result<unit, string> =
     | [] -> Ok()
     | extra -> Error("unknown field(s): " + String.Join(", ", extra))
 
+/// Exactly these keys: none unknown and none missing.
+let exactKeys (required: string list) (json: Json) : Result<unit, string> =
+    match onlyKeys required json, required |> List.filter (fun k -> not (List.contains k (keys json))) with
+    | Error e, _ -> Error e
+    | Ok(), [] -> Ok()
+    | Ok(), missing -> Error("missing field(s): " + String.Join(", ", missing))
+
 let jstr (s: string) = JString s
 let jint (n: int64) = JNumber(string n)
 let jstrOpt = function Some s -> JString s | None -> JNull

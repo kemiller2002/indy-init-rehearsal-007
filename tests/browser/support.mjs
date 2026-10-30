@@ -11,7 +11,7 @@ const repo = (process.env.CAUSA_WRITE_REPO ?? "kemiller2002/causa-write-test").s
 
 export const target = live
   ? { owner: repo[0], name: repo[1], branch: process.env.CAUSA_WRITE_BRANCH ?? "main", token: process.env.CAUSA_WRITE_TOKEN, api: "", apiBase: "https://api.github.com" }
-  : { owner: "causa-test", name: "data", branch: "main", token: "test-token", api: `${baseURL}/github`, apiBase: `${baseURL}/github` };
+  : { owner: "causa-test", name: "data", branch: "main", token: "test-token", api: "/github", apiBase: `${baseURL}/github` };
 
 export const graphqlPattern = live ? "https://api.github.com/graphql" : "**/github/graphql";
 

@@ -148,5 +148,13 @@ let tests =
             negative "a snapshot that disagrees with history" (fun f -> { f with Snapshot = f.Snapshot.Replace("Lamp failed", "Lamp fine") })
             negative "a snapshot whose entity state disagrees with history" (fun f -> { f with Snapshot = f.Snapshot.Replace("\"state\":\"proposed\"", "\"state\":\"supported\"") })
             negative "an unsupported format version" (fun f -> { f with Manifest = f.Manifest.Replace("\"formatVersion\":\"1.0.0\"", "\"formatVersion\":\"2.0.0\"") })
+            // Forgeries that keep every digest consistent: only exact reproduction of the state by replay refuses them.
+            let resealed (snapshot: string) (f: Files) =
+                let digest text = parse text |> Result.defaultWith failwith |> canonicalSha256
+                { f with Snapshot = snapshot; Manifest = f.Manifest.Replace(digest f.Snapshot, digest snapshot) }
+            test "resealing an unchanged snapshot still verifies" { Expect.isOk (verify investigationId (resealed files.Snapshot files)) "the reseal itself is sound" }
+            negative "a resealed snapshot whose entity state disagrees with history" (fun f -> resealed (f.Snapshot.Replace("\"state\":\"proposed\"", "\"state\":\"supported\"")) f)
+            negative "a resealed snapshot with an invented state field" (fun f -> resealed (f.Snapshot.Replace("\"lifecycle\":", "\"forged\":true,\"lifecycle\":")) f)
+            negative "a manifest missing a required field" (fun f -> { f with Manifest = f.Manifest.Replace("\"domainPacks\":[],", "") })
         ]
     ]

@@ -2,7 +2,11 @@
   <ItemGroup>
     <Compile Include="SaveState.fs" />
     <Compile Include="GitHub.fs" />
+    <Compile Include="Load.fs" />
     <Compile Include="SaveProcess.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Causa.Tests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Causa.Domain/Causa.Domain.fsproj" />
