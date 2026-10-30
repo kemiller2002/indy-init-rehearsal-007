@@ -59,6 +59,8 @@ type Request =
     | PTree of head: string
     | PLoad of id: string * load: Load.Load
     | PRefreshHead of id: string
+    /// A conflict's GitHub version is read again, from the branch's current head (PERSIST-012).
+    | PConflictHead of id: string
     | PTheirs of id: string * load: Load.Load
     | PSave of id: string
 
@@ -150,9 +152,14 @@ let private applyInputs (m: Model) (id: string) (inputs: SaveInput list) =
             inputs
             |> List.fold
                 (fun (s: Session) input ->
-                    match SaveState.step s.Save input with
-                    | Ok next -> { s with Save = next }
-                    | Error f -> { s with Fault = Some(sprintf "%s in %s: %s" f.Input f.From f.Reason) })
+                    let confirmation = match input with Confirmed(c, _, _) | Discarded c | Reapplied(c, _, _) | Opened c -> Some c | _ -> None
+                    match confirmation with
+                    | Some c when Confirmation.investigationId c <> id ->
+                        { s with Fault = Some(sprintf "%s in %s: the confirmation belongs to another investigation" (SaveState.inputName input) (SaveState.name s.Save)) }
+                    | _ ->
+                        match SaveState.step s.Save input with
+                        | Ok next -> { s with Save = next }
+                        | Error f -> { s with Fault = Some(sprintf "%s in %s: %s" f.Input f.From f.Reason) })
                 s0
         let m' = { m with Sessions = m.Sessions.Add(id, s) }
         if SaveState.name s.Save <> SaveState.name s0.Save then announce m' s else m'
@@ -205,14 +212,14 @@ let rec private handleNext (env: Env) (m: Model) (id: string) (next: SaveProcess
 
 and startNext (env: Env) (m: Model) : Model * Effect list =
     match m.Active, m.Queue, m.Connection with
-    | None, id :: rest, Some _ when not m.Online ->
-        // Known offline: no request is sent; a queued save waits as Offline for the user (PERSIST-018).
-        let m1 = { m with Queue = rest }
-        startNext env (match m1.Sessions.TryFind id with Some { Save = Saving } -> applyInputs m1 id [ NotSent ] | _ -> m1)
+    | None, _ :: rest, Some _ when not m.Online ->
+        // Known offline: no request is sent; a waiting save stays Offline until the user saves again (PERSIST-018).
+        startNext env { m with Queue = rest }
     | None, id :: rest, Some conn ->
         let m1 = { m with Queue = rest }
         match m1.Sessions.TryFind id with
-        | Some s when not s.Unsaved.IsEmpty && s.Current.IsSome ->
+        | Some({ Save = (Unsaved | Offline | SaveFailed _) } as s) when not s.Unsaved.IsEmpty && s.Current.IsSome ->
+            let m1 = applyInputs { m1 with Notice = "" } id [ SaveRequested true ]
             let inv = s.Current.Value
             let added = s.Unsaved |> List.map snd
             let baseEvents = s.BaseFiles |> Option.map (fun f -> f.Events) |> Option.defaultValue ""
@@ -231,9 +238,12 @@ let private requestSave (env: Env) (m: Model) (id: string) =
         match s.Save with
         | Unsaved | Offline | SaveFailed _ when not m.CanPush ->
             { m with Notice = "This credential can read the repository but cannot write to it. Reconnect with a credential that can write." }, []
+        | Unsaved | Offline | SaveFailed _ when not m.Online -> applyInputs { m with Notice = "" } id [ SaveRequested false ], []
+        | Unsaved | Offline | SaveFailed _ when List.contains id m.Queue -> m, []
         | Unsaved | Offline | SaveFailed _ ->
-            let m1 = applyInputs { m with Notice = "" } id [ SaveRequested m.Online ]
-            if m.Online && not (List.contains id m1.Queue) then startNext env { m1 with Queue = m1.Queue @ [ id ] } else m1, []
+            // Saves run one at a time; a waiting one stays as it is (nothing is being sent for it) until it starts.
+            let waiting = m.Active.IsSome
+            startNext env { m with Notice = (if waiting then "This save starts when the save in progress finishes." else ""); Queue = m.Queue @ [ id ] }
         | _ -> m, []
     | _ -> m, []
 
@@ -382,9 +392,11 @@ let private onLoaded (m: Model) id (v: Verified, c: Confirmation) =
         { (updateSession m id (fun s -> { s with Load = Ready })) with
             Notice = "Your unsaved changes were kept; the GitHub version was not loaded over them." }, []
     | _ ->
-        updateSession m id (fun s ->
-            { s with Load = Ready; BaseCommit = Confirmation.commit c; BaseFiles = Some v.Files; BaseState = Some v.Investigation; Current = Some v.Investigation
-                     Unsaved = []; Sent = 0; Save = Saved c; Conflict = None; Refused = [] }), []
+        let m1 =
+            updateSession m id (fun s ->
+                { s with Load = Ready; BaseCommit = Confirmation.commit c; BaseFiles = Some v.Files; BaseState = Some v.Investigation; Current = Some v.Investigation
+                         Unsaved = []; Sent = 0; Conflict = None; Refused = [] })
+        applyInputs m1 id [ Opened c ], []
 
 let private withTheirs (m: Model) id (f: ConflictInfo -> ConflictInfo) =
     updateSession m id (fun s -> { s with Conflict = s.Conflict |> Option.map f })
@@ -423,6 +435,10 @@ let private onReply (env: Env) (m: Model) (pending: Request) (reply: Reply) : Mo
         match classifyRead decodeHead reply with
         | Read h -> loadRequest m PLoad id h
         | other -> { m with Notice = "Could not read GitHub: " + readError other }, []
+    | PConflictHead id ->
+        match classifyRead decodeHead reply with
+        | Read h -> loadRequest (withTheirs m id (fun ci -> { ci with Head = h; Theirs = None; TheirsConfirmation = None; TheirsError = None })) PTheirs id h
+        | other -> withTheirs m id (fun ci -> { ci with TheirsError = Some(readError other) }), []
     | PTheirs(id, load) ->
         match Load.onReply load reply (env.Context.Now()) with
         | Load.Next(load', request) -> send m (PTheirs(id, load')) request
@@ -466,15 +482,30 @@ let private withConflict (m: Model) (f: ConflictInfo -> ConflictInfo) =
     | Some id -> updateSession m id (fun s -> { s with Conflict = s.Conflict |> Option.map f })
     | None -> m
 
+/// Asks GitHub again for the current version of `id`'s conflict.
+let private rereadConflict (env: Env) (m: Model) (id: string) =
+    match m.Connection, m.Sessions.TryFind id with
+    | Some conn, Some { Conflict = Some _ } ->
+        send (withTheirs m id (fun ci -> { ci with TheirsError = None })) (PConflictHead id) (head conn (env.Nonce()))
+    | _ -> m, []
+
+/// Conflicts whose GitHub version could not be read are read again when the connection returns.
+let private rereadConflicts (env: Env) (m: Model) =
+    m.Sessions
+    |> Map.toList
+    |> List.filter (fun (_, s) -> s.Conflict |> Option.exists (fun c -> c.TheirsError.IsSome))
+    |> List.fold (fun (mm, effs) (id, _) -> let mm', e = rereadConflict env mm id in mm', effs @ e) (m, [])
+
 let private connectivity (env: Env) (m: Model) (online: bool) =
     let input = if online then ConnectivityRestored else ConnectivityLost
     let m1 = m.Order |> List.fold (fun acc id -> applyInputs acc id [ input ]) { m with Online = online }
-    match online, m1.Active with
+    let m2, rereads = if online then rereadConflicts env m1 else m1, []
+    match online, m2.Active with
     | true, Some(id, save) ->
         match SaveProcess.reconcileNow save true (env.Nonce()) with
-        | Some next -> handleNext env { m1 with Timer = None } id next
-        | None -> m1, []
-    | _ -> m1, []
+        | Some next -> let m3, e = handleNext env { m2 with Timer = None } id next in m3, rereads @ e
+        | None -> m2, rereads
+    | _ -> m2, rereads
 
 let private createInvestigation (env: Env) (m: Model) =
     match m.Head with
@@ -538,6 +569,7 @@ let update (env: Env) (m: Model) (msg: Inbound) : Model * Effect list =
                 send m (PRefreshHead id) (head conn (env.Nonce()))
             | _ -> { m with Notice = "Save or resolve your changes before loading the GitHub version." }, []
         | "select", Some id, _ -> { m with Selected = (if m.Selected = Some id then None else Some id) }, []
+        | "conflict.reread", _, _ -> (match current m with Some id -> rereadConflict env m id | None -> m, [])
         | "conflict.review", _, _ -> withConflict m (fun c -> { c with Reviewing = not c.Reviewing }), []
         | "conflict.reapply", _, _ -> (match current m with Some id -> reapply env m id, [] | None -> m, [])
         | "conflict.discard", _, _ -> withConflict m (fun c -> { c with ConfirmDiscard = true }), []

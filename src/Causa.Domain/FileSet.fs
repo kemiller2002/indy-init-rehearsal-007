@@ -134,6 +134,12 @@ let manifestFields =
     [ "formatVersion"; "investigationId"; "schemaVersion"; "semanticVersion"; "aggregateVersion"; "eventCount"; "eventsSha256"
       "snapshotVersion"; "snapshotSha256"; "domainPacks"; "createdAt"; "updatedAt" ]
 
+/// Fields whose values the v1.0.0 contract fixes: any other value is incompatible data (causa-data v1.0.0 §4, §6).
+let private fixedValues (expected: (string * Json) list) (json: Json) =
+    match expected |> List.filter (fun (k, v) -> field k json |> Option.map canonical <> Some(canonical v)) with
+    | [] -> Ok()
+    | wrong -> Error("unsupported value (incompatible data) for " + String.Join(", ", wrong |> List.map fst))
+
 let private checkSnapshot (inv: Investigation) (snapshot: Json) =
     result {
         do! exactKeys [ "formatVersion"; "investigationId"; "aggregateVersion"; "projectionVersion"; "semanticVersion"; "generatedAt"; "state" ] snapshot
@@ -141,6 +147,7 @@ let private checkSnapshot (inv: Investigation) (snapshot: Json) =
         do! Result.require (id = inv.Id) "snapshot belongs to another investigation"
         let! v = int64Field "aggregateVersion" snapshot
         do! Result.require (v = inv.Version) "snapshot aggregateVersion does not match the replayed history"
+        do! fixedValues [ "formatVersion", JString "1.0.0"; "semanticVersion", JString "1.0.0"; "projectionVersion", jint 1L ] snapshot
         let! state = field "state" snapshot |> Option.map Ok |> Option.defaultValue (Error "snapshot state is required")
         let! lifecycle = str "lifecycle" state
         do! Result.require (lifecycle = inv.Lifecycle) "snapshot lifecycle does not match the replayed history"
@@ -159,6 +166,8 @@ let verify (expectedId: string) (files: Files) : Result<Verified, string> =
         do! exactKeys manifestFields manifest |> Result.mapError ((+) "manifest.json: ")
         let! fv = str "formatVersion" manifest
         do! Result.require (fv = "1.0.0") "manifest.json: unsupported formatVersion (incompatible data)"
+        do! fixedValues [ "schemaVersion", JString "1.0.0"; "semanticVersion", JString "1.0.0"; "snapshotVersion", jint 1L; "domainPacks", JArray [] ] manifest
+            |> Result.mapError ((+) "manifest.json: ")
         let! mid = str "investigationId" manifest
         do! Result.require (mid = expectedId) "manifest.json: investigationId does not match its directory"
         let! events = parseEvents files.Events

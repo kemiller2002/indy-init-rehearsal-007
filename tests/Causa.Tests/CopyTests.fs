@@ -9,7 +9,7 @@ open Causa.Persistence
 open Causa.App
 
 let private files = { Manifest = "m"; Events = "e"; Snapshot = "s" }
-let private c = Confirmation.ofReadBack "0123456789012345678901234567890123456789" files files "2026-10-29T23:00:00.000Z" |> Result.defaultWith failwith
+let private c = Confirmation.ofReadBack "inv" "0123456789012345678901234567890123456789" files files "2026-10-29T23:00:00.000Z" |> Result.defaultWith failwith
 
 let causes = [ RepositoryKeptChanging; CredentialRefused; PermissionDenied; RateLimited; Rejected "A path is not valid"; ReadBackMismatch; HistoryRewritten ]
 
